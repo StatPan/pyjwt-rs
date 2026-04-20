@@ -3,7 +3,7 @@ requires = ["maturin>=1.13,<2"]
 build-backend = "maturin"
 
 [project]
-name = "jwt-rs"
+name = "pyjwt-rs"
 version = "1.0.0"
 description = "Rust-backed PyJWT-compatible JWT library for Python"
 readme = "README.md"

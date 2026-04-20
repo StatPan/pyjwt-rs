@@ -1,4 +1,4 @@
-# rust-pyjwt
+# pyjwt-rs
 
 `PyJWT` 대체를 목표로 하는 Rust 기반 Python 확장 모듈입니다.
 
@@ -19,7 +19,7 @@
 
 ```bash
 source "$HOME/.cargo/env"
-cd rust-pyjwt
+cd pyjwt-rs
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
