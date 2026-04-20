@@ -1,0 +1,17 @@
+[package]
+name = "jwt-rs"
+version = "1.0.0"
+edition = "2024"
+
+[lib]
+name = "_rust_pyjwt"
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = "0.22.1"
+ecdsa = "0.16.9"
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+k256 = { version = "0.13.4", features = ["ecdsa", "pkcs8", "pem"] }
+p521 = { version = "0.13.3", features = ["ecdsa", "pkcs8", "pem"] }
+pyo3 = { version = "0.28.3", features = ["extension-module"] }
+sec1 = "0.7.3"

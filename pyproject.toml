@@ -1,0 +1,35 @@
+[build-system]
+requires = ["maturin>=1.13,<2"]
+build-backend = "maturin"
+
+[project]
+name = "jwt-rs"
+version = "1.0.0"
+description = "Rust-backed PyJWT-compatible JWT library for Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "statpan" }
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "cryptography>=45.0.0",
+    "maturin>=1.13.1",
+    "pytest>=9.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "jwt_rs._rust_pyjwt"
+features = ["pyo3/extension-module"]
