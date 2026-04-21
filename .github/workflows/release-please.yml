@@ -1,0 +1,43 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branch to manage release PRs against"
+        required: false
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: ${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
+
+  publish-release:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    # release-please-created tags/releases do not trigger other workflows,
+    # so we call the shared build/publish matrix directly here.
+    uses: ./.github/workflows/release-pipeline.yml
+    with:
+      git_ref: refs/tags/${{ needs.release-please.outputs.tag_name }}
+      publish: true
+    secrets: inherit

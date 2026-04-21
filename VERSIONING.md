@@ -12,7 +12,7 @@
 
 현재 기준:
 
-- `pyjwt-rs`: `1.2.0`
+- `pyjwt-rs`: `1.2.0` <!-- x-release-please-version -->
 
 ## 2. Compatibility Version
 
@@ -36,55 +36,27 @@
 
 ## Release
 
-릴리스는 `scripts/release.py`가 end-to-end로 처리합니다.
+기본 릴리스 경로는 이제 `release-please`입니다.
 
-```bash
-# SemVer bump (권장)
-uv run --extra bench python scripts/release.py patch           # 1.1.0 -> 1.1.1
-uv run --extra bench python scripts/release.py minor           # 1.1.0 -> 1.2.0
-uv run --extra bench python scripts/release.py major           # 1.1.0 -> 2.0.0
+1. PR 제목을 Conventional Commits 형식으로 맞춥니다.
+2. PR은 가능하면 **squash merge** 합니다.
+3. `main`에 releasable commit (`feat`, `fix`, `deps`, `docs`)가 쌓이면
+   `Release Please` 워크플로가 release PR을 열거나 갱신합니다.
+4. release PR에는 `Cargo.toml`, `pyproject.toml`,
+   `__pyjwt_rs_version__`, `CHANGELOG.md`가 자동 반영됩니다.
+5. release PR을 merge하면 Git tag / GitHub release가 생성되고, 같은 자동화
+   흐름에서 wheel/sdist build + PyPI publish까지 이어집니다.
 
-# 명시적 버전
-uv run --extra bench python scripts/release.py 1.2.3
+수동 스크립트 `scripts/release.py`는 fallback 전용입니다. 자동화가 깨졌거나,
+강제로 특정 버전을 찍어야 할 때만 사용합니다.
 
-# 바로 push까지 (GitHub Actions가 PyPI 업로드 트리거)
-uv run --extra bench python scripts/release.py minor --push
+## PyPI Publishing 세팅 (1회성)
 
-# 미리보기
-uv run --extra bench python scripts/release.py minor --dry-run
-```
+현재 publish 경로는 `PYPI_API_TOKEN` 기반입니다.
 
-스크립트가 수행하는 순서:
-
-1. 워킹 트리가 clean이고 `main` 브랜치인지 확인 (`--allow-dirty`, `--force`로 우회 가능).
-2. 태그 `vX.Y.Z`가 아직 로컬에 없는지 확인.
-3. `Cargo.toml`, `pyproject.toml`, `__pyjwt_rs_version__` 버전을 일괄 갱신.
-4. `CHANGELOG.md`의 `[Unreleased]` 블록을 새 버전 섹션으로 승격하고 compare 링크 갱신.
-5. `scripts/update_readme_bench.py`로 README 벤치 표 + `docs/benchmark.svg` 재생성.
-6. `scripts/pytest_gate.py` 실행 (`-W error` + unexpected skip 차단).
-7. 관련 파일을 staging하고 `release: vX.Y.Z` 커밋 + annotated 태그 생성.
-8. `--push`일 경우 `git push` + `git push origin vX.Y.Z`로 태그까지 송신.
-
-`--push` 없이 실행하면 마지막에 `git push --follow-tags` 안내만 출력하고 멈춥니다 —
-직접 로그 확인 후 푸시하고 싶을 때 씁니다.
-
-태그가 origin으로 올라가면 `.github/workflows/release.yml`이 자동으로 sdist + 모든
-플랫폼 wheels를 빌드하고 PyPI trusted publishing으로 업로드합니다.
-
-## PyPI Trusted Publishing 세팅 (1회성)
-
-PyPI 쪽에서 한 번만 설정합니다.
-
-1. <https://pypi.org/manage/account/publishing/> 이동.
-2. "Add a new pending publisher" 선택.
-3. 필드:
-   - PyPI project name: `pyjwt-rs`
-   - Owner: GitHub 오너 아이디
-   - Repository: `pyjwt-rs`
-   - Workflow name: `release.yml`
-   - Environment name: `pypi`
-4. 첫 릴리스 태그가 푸시되면 이 trusted publisher로 프로젝트가 생성됩니다.
+1. PyPI에서 project-scoped API token 생성
+2. GitHub repo Settings → Secrets and variables → Actions
+3. `PYPI_API_TOKEN` secret 추가
 
 GitHub 쪽 환경 보호(선택): repo Settings → Environments → `pypi` 환경을 만들고
-수동 승인(required reviewers)을 걸어두면 릴리스 workflow가 publish 단계에서
-일시 정지하며 승인을 기다립니다.
+수동 승인(required reviewers)을 걸어두면 publish job이 승인 대기 상태로 멈춥니다.

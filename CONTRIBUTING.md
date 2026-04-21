@@ -24,8 +24,11 @@ Every code change follows `Issue -> Branch -> PR -> Merge`.
 - Open or link a GitHub issue before changing behavior.
 - Use branch names in the form `issue-<number>-<slug>`.
 - Keep each PR scoped to a single issue whenever possible.
+- PR titles must follow Conventional Commits. The repo validates this in CI.
+- Prefer **squash merge** so the PR title becomes the releasable commit on `main`.
+- Releasable prefixes for the automated release flow are `feat`, `fix`, `deps`, and `docs`.
 - If a change affects compatibility, packaging, release safety, or warnings/skips, document that in the PR.
-- Release workflow changes must be validated with `Release` `workflow_dispatch` before tagging when possible.
+- Release automation changes must be validated with `Release Please` and `Release` workflow runs before merging when possible.
 
 ## Milestones
 
