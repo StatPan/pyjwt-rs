@@ -10,6 +10,14 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+### Fixed
+
+- Manylinux wheel builds failed because the vendored OpenSSL build requires
+  a full Perl stack (`IPC::Cmd`, `FindBin`, `File::Compare`, `File::Copy`)
+  that the stock manylinux image does not ship. Added a
+  `before-script-linux` hook to the release workflow that installs
+  `perl-core` and the needed Perl modules before invoking maturin.
+
 ## [1.1.1] - 2026-04-21
 
 ### Fixed
