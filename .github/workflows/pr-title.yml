@@ -1,0 +1,24 @@
+name: PR Title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|refactor|deps|docs|build|ci|test|chore)(\([^)]+\))?!?: .+$'
+          if [[ "$PR_TITLE" =~ $pattern ]]; then
+            exit 0
+          fi
+          echo "PR title must follow Conventional Commits, e.g. 'fix(jwt): align decoder edge case'." >&2
+          echo "Use squash merge so the PR title becomes the releasable commit on main." >&2
+          exit 1

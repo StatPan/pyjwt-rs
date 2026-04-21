@@ -2,6 +2,7 @@
 
 - Linked issue:
 - Scope of change:
+- Conventional PR title:
 
 ## Checks
 
@@ -21,3 +22,4 @@
 - Warnings/skips added or removed:
 - Compatibility checklist items updated:
 - Release blocker status:
+- Releasable commit type on merge (`feat` / `fix` / `deps` / `docs`, or explain why not):

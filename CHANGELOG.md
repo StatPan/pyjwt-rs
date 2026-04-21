@@ -12,15 +12,13 @@ is documented in `VERSIONING.md`.
 
 ### Changed
 
-- Release workflow now publishes to PyPI via **Trusted Publishing (OIDC)**
-  instead of the `PYPI_API_TOKEN` fallback that shipped `v1.2.0`. Added
-  `id-token: write` / `attestations: write` permissions to the publish
-  job and removed the explicit `password:` argument. The `environment:
-  pypi` gate is preserved. PEP 740 attestations are produced for every
-  artifact, which were disabled under the token path.
-- Bumped `actions/download-artifact` from `v5` (Node 20) to `v8`
-  (Node 24) to clear the runner deprecation annotation. All other
-  actions already run on Node 24.
+- Added `Release Please` automation so release PRs now own distribution
+  version bumps and `CHANGELOG.md` generation from conventional commits.
+- Split the OS-specific wheel/sdist matrix into a reusable release workflow
+  so both manual releases and release-please-created tags go through the
+  same build and publish path.
+- Added PR title validation to enforce Conventional Commits and make
+  squash-merged PR titles usable as releasable commits on `main`.
 
 ## [1.2.0] - 2026-04-21
 
