@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+import jwt_rs.api_jwk as api_jwk_module
 from jwt_rs.algorithms import has_crypto
 from jwt_rs.api_jwk import PyJWK, PyJWKSet
 from jwt_rs.exceptions import (
@@ -11,7 +12,7 @@ from jwt_rs.exceptions import (
     PyJWKSetError,
 )
 
-from .utils import crypto_required, key_path, no_crypto_required
+from .utils import crypto_required, key_path
 
 if has_crypto:
     from jwt_rs.algorithms import ECAlgorithm, HMACAlgorithm, OKPAlgorithm, RSAAlgorithm
@@ -211,14 +212,16 @@ class TestPyJWK:
         with pytest.raises(InvalidKeyError):
             PyJWK.from_dict(v)
 
-    @no_crypto_required
-    def test_missing_crypto_library_good_error_message(self) -> None:
+    def test_missing_crypto_library_good_error_message(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(api_jwk_module, "has_crypto", False)
         with pytest.raises(PyJWKError) as exc:
             PyJWK({"kty": "dummy"}, algorithm="RS256")
-            assert "cryptography" in str(exc.value)
+        assert "cryptography" in str(exc.value)
 
-    @no_crypto_required
-    def test_missing_crypto_library_raises_missing_cryptography_error(self) -> None:
+    def test_missing_crypto_library_raises_missing_cryptography_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(api_jwk_module, "has_crypto", False)
         with pytest.raises(MissingCryptographyError):
             PyJWK({"kty": "dummy"}, algorithm="RS256")
 
@@ -335,7 +338,9 @@ class TestPyJWKSet:
             PyJWKSet(keys=[])
         assert str(err.value) == "The JWK Set did not contain any keys"
 
-    @no_crypto_required
-    def test_missing_crypto_library_raises_when_required(self) -> None:
-        with pytest.raises(MissingCryptographyError):
+    def test_missing_crypto_library_raises_when_required(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(api_jwk_module, "has_crypto", False)
+        with pytest.raises(PyJWKSetError, match="cryptography"):
             PyJWKSet(keys=[{"kty": "RSA"}])

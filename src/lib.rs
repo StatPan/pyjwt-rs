@@ -344,18 +344,6 @@ fn pad_signature_component(component: &openssl::bn::BigNumRef, coordinate_size: 
     Ok(padded)
 }
 
-fn raw_jwt_signature_to_ecdsa_sig(signature: &str, coordinate_size: usize) -> PyResult<EcdsaSig> {
-    let raw = URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))?;
-    if raw.len() != coordinate_size * 2 {
-        return Err(jwt_err("Invalid ECDSA signature length"));
-    }
-    let r = BigNum::from_slice(&raw[..coordinate_size]).map_err(openssl_jwt_err)?;
-    let s = BigNum::from_slice(&raw[coordinate_size..]).map_err(openssl_jwt_err)?;
-    EcdsaSig::from_private_components(r, s).map_err(openssl_jwt_err)
-}
-
 fn sign_hmac_raw(message: &[u8], key: &[u8], algorithm: &str) -> PyResult<Vec<u8>> {
     match algorithm {
         "HS256" => {
@@ -428,10 +416,6 @@ fn sign_rsa_raw(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResul
     signer.sign_to_vec().map_err(openssl_jwt_err)
 }
 
-fn sign_with_rsa(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResult<String> {
-    Ok(URL_SAFE_NO_PAD.encode(sign_rsa_raw(message, key, algorithm)?))
-}
-
 fn verify_rsa_public_raw(
     signature: &[u8],
     message: &[u8],
@@ -455,18 +439,6 @@ fn verify_rsa_public_raw(
     }
     verifier.update(message).map_err(openssl_jwt_err)?;
     verifier.verify(signature).map_err(openssl_jwt_err)
-}
-
-fn verify_with_rsa_public(
-    signature: &str,
-    message: &[u8],
-    key: &PKey<Public>,
-    algorithm: &str,
-) -> PyResult<bool> {
-    let signature = URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))?;
-    verify_rsa_public_raw(&signature, message, key, algorithm)
 }
 
 fn verify_rsa_private_raw(
@@ -494,18 +466,6 @@ fn verify_rsa_private_raw(
     verifier.verify(signature).map_err(openssl_jwt_err)
 }
 
-fn verify_with_rsa_private(
-    signature: &str,
-    message: &[u8],
-    key: &PKey<Private>,
-    algorithm: &str,
-) -> PyResult<bool> {
-    let signature = URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))?;
-    verify_rsa_private_raw(&signature, message, key, algorithm)
-}
-
 fn sign_ec_raw(
     message: &[u8],
     key: &EcKey<Private>,
@@ -517,10 +477,6 @@ fn sign_ec_raw(
     let mut raw = pad_signature_component(signature.r(), coordinate_size)?;
     raw.extend_from_slice(&pad_signature_component(signature.s(), coordinate_size)?);
     Ok(raw)
-}
-
-fn sign_with_ec(message: &[u8], key: &EcKey<Private>, algorithm: &str, coordinate_size: usize) -> PyResult<String> {
-    Ok(URL_SAFE_NO_PAD.encode(sign_ec_raw(message, key, algorithm, coordinate_size)?))
 }
 
 fn ecdsa_sig_from_raw(raw: &[u8], coordinate_size: usize) -> PyResult<EcdsaSig> {
@@ -544,18 +500,6 @@ fn verify_ec_public_raw(
     signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
 }
 
-fn verify_with_ec_public(
-    signature: &str,
-    message: &[u8],
-    key: &EcKey<Public>,
-    algorithm: &str,
-    coordinate_size: usize,
-) -> PyResult<bool> {
-    let digest = compute_digest(message, algorithm)?;
-    let signature = raw_jwt_signature_to_ecdsa_sig(signature, coordinate_size)?;
-    signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
-}
-
 fn verify_ec_private_raw(
     signature: &[u8],
     message: &[u8],
@@ -568,25 +512,9 @@ fn verify_ec_private_raw(
     signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
 }
 
-fn verify_with_ec_private(
-    signature: &str,
-    message: &[u8],
-    key: &EcKey<Private>,
-    algorithm: &str,
-    coordinate_size: usize,
-) -> PyResult<bool> {
-    let digest = compute_digest(message, algorithm)?;
-    let signature = raw_jwt_signature_to_ecdsa_sig(signature, coordinate_size)?;
-    signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
-}
-
 fn sign_ed_raw(message: &[u8], key: &PKey<Private>) -> PyResult<Vec<u8>> {
     let mut signer = OpenSslSigner::new_without_digest(key).map_err(openssl_jwt_err)?;
     signer.sign_oneshot_to_vec(message).map_err(openssl_jwt_err)
-}
-
-fn sign_with_ed(message: &[u8], key: &PKey<Private>) -> PyResult<String> {
-    Ok(URL_SAFE_NO_PAD.encode(sign_ed_raw(message, key)?))
 }
 
 fn verify_ed_public_raw(signature: &[u8], message: &[u8], key: &PKey<Public>) -> PyResult<bool> {
@@ -596,25 +524,11 @@ fn verify_ed_public_raw(signature: &[u8], message: &[u8], key: &PKey<Public>) ->
         .map_err(openssl_jwt_err)
 }
 
-fn verify_with_ed_public(signature: &str, message: &[u8], key: &PKey<Public>) -> PyResult<bool> {
-    let signature = URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))?;
-    verify_ed_public_raw(&signature, message, key)
-}
-
 fn verify_ed_private_raw(signature: &[u8], message: &[u8], key: &PKey<Private>) -> PyResult<bool> {
     let mut verifier = OpenSslVerifier::new_without_digest(key).map_err(openssl_jwt_err)?;
     verifier
         .verify_oneshot(signature, message)
         .map_err(openssl_jwt_err)
-}
-
-fn verify_with_ed_private(signature: &str, message: &[u8], key: &PKey<Private>) -> PyResult<bool> {
-    let signature = URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))?;
-    verify_ed_private_raw(&signature, message, key)
 }
 
 fn sign_with_stored_key_raw(message: &[u8], stored: &StoredKey, algorithm: &str) -> PyResult<Vec<u8>> {

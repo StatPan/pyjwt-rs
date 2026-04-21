@@ -20,10 +20,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -36,7 +36,7 @@ jobs:
           workspaces: ". -> target"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies (test + bench extras)
         run: |
@@ -44,17 +44,19 @@ jobs:
           uv pip install --python .venv pytest pyjwt cryptography maturin
 
       - name: Build extension (debug)
+        env:
+          RUSTFLAGS: -D warnings
         run: uv run --python .venv maturin develop
 
-      - name: Run tests
-        run: uv run --python .venv pytest -q
+      - name: Run strict test gate
+        run: uv run --python .venv python scripts/pytest_gate.py
 
   build-sdist-smoke:
     name: sdist + wheel smoke build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
@@ -64,10 +66,12 @@ jobs:
       - name: Build sdist
         run: maturin sdist --out dist
       - name: Build release wheel
+        env:
+          RUSTFLAGS: -D warnings
         run: maturin build --release --out dist --features vendored-openssl
       - name: List artifacts
         run: ls -la dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ci-artifacts-smoke
           path: dist/

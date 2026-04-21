@@ -1,0 +1,35 @@
+name: Compatibility Gap
+description: Track a difference from the target PyJWT compatibility surface.
+title: "[compat] "
+labels: ["compat"]
+body:
+  - type: textarea
+    id: gap
+    attributes:
+      label: Gap
+      description: Describe the current behavior and the target upstream-compatible behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link the checklist item, tests, source line, or upstream reference.
+    validations:
+      required: true
+  - type: dropdown
+    id: blocker
+    attributes:
+      label: Release Blocker
+      options:
+        - "yes"
+        - "no"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: State the test or behavior change that will close this issue.
+    validations:
+      required: true

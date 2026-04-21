@@ -205,8 +205,8 @@ def run_tests(skip: bool) -> None:
     if skip:
         print("[skip] pytest")
         return
-    print("[step] running pytest")
-    run([sys.executable, "-m", "pytest", "-q"])
+    print("[step] running strict pytest gate")
+    run([sys.executable, "scripts/pytest_gate.py"])
 
 
 def stage_and_commit(new_version: str, dry_run: bool) -> None:
