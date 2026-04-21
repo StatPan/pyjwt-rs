@@ -10,6 +10,28 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+### Added
+
+- Strict pytest release gate (`scripts/pytest_gate.py`) and allowlist support to
+  fail CI on unexpected skips and Python warnings before external release.
+- GitHub issue templates and PR template for packaging, compatibility, and bug
+  tracking so release blockers are recorded through issue -> PR flow.
+
+### Changed
+
+- CI now treats Rust warnings as errors and uses Node 24-compatible GitHub
+  Actions versions for external workflow runs.
+- Release workflow now builds the package as an `abi3` wheel set: one wheel per
+  platform/architecture instead of one wheel per Python version.
+
+### Fixed
+
+- Linux cross-wheel builds now pin a CPython 3.10 interpreter for `abi3`
+  stamping, fixing foreign-architecture interpreter discovery failures in the
+  manylinux container.
+- Test suite skips and weak-key warning cases were tightened so the public
+  package path no longer relies on implicit skip behavior or noisy warning debt.
+
 ## [1.1.3] - 2026-04-21
 
 ### Fixed
