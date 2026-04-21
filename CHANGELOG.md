@@ -8,6 +8,20 @@ on the **distribution** axis (`pyproject.toml` / `Cargo.toml` version). The
 `jwt_rs.__version__` field tracks the PyJWT compatibility target separately and
 is documented in `VERSIONING.md`.
 
+## [1.2.1](https://github.com/StatPan/pyjwt-rs/compare/v1.2.0...v1.2.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **release:** automate versioning with release-please ([#13](https://github.com/StatPan/pyjwt-rs/issues/13)) ([390139b](https://github.com/StatPan/pyjwt-rs/commit/390139b3ece4c487080d0d52e6512aafea9f3677))
+
+
+### CI
+
+* **release:** publish with PyPI API token ([4d4a27c](https://github.com/StatPan/pyjwt-rs/commit/4d4a27ce1bfd4d5cb0dc9ee8922bc47f565989c6))
+* **release:** restore PyPI API token publish fallback ([3289c4f](https://github.com/StatPan/pyjwt-rs/commit/3289c4ff95ab8e202159ec8b9f9f7c498d16d1e9))
+* **release:** restore PyPI trusted publishing, bump download-artifact ([ccb6fd6](https://github.com/StatPan/pyjwt-rs/commit/ccb6fd62fdf12c2223874bd5f4dc15a5bddce53f))
+
 ## [Unreleased]
 
 ### Changed
