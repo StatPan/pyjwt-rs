@@ -10,6 +10,8 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-21
+
 ## [1.1.3] - 2026-04-21
 
 ### Fixed
