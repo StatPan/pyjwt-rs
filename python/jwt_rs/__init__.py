@@ -34,7 +34,7 @@ from .warnings import InsecureKeyLengthWarning
 __version__ = "2.12.1"
 # Distribution version of the pyjwt-rs package itself (separate from the PyJWT
 # compatibility version above). See VERSIONING.md for the two-axis policy.
-__pyjwt_rs_version__ = "1.2.1"
+__pyjwt_rs_version__ = "1.2.0"
 
 __title__ = "PyJWT"
 __description__ = "JSON Web Token implementation in Python"

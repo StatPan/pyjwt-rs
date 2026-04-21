@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pyjwt-rs"
-version = "1.2.1"
+version = "1.2.0"
 description = "Rust-backed PyJWT-compatible JWT library for Python"
 readme = "README.md"
 requires-python = ">=3.10"

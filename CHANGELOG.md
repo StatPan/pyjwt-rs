@@ -10,15 +10,6 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
-### Fixed
-
-- Added regression coverage for `json_encoder` parity so custom payload
-  values still encode correctly after datetime claim normalization, custom
-  header values use the same encoder path as upstream PyJWT, and `kid`
-  validation is not bypassed by a custom encoder.
-- Marked `json_encoder` compatibility as complete in
-  `COMPATIBILITY_CHECKLIST.md`.
-
 ## [1.2.0] - 2026-04-21
 
 ## [1.1.3] - 2026-04-21
