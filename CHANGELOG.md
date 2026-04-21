@@ -10,6 +10,13 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+### Fixed
+
+- `before-script-linux` installed `perl-FindBin` as a separate package,
+  which does not exist on manylinux2014 (CentOS 7) where those modules
+  are bundled into `perl-core`. Drop the individual module names and
+  install only `perl-core` + `perl-IPC-Cmd`.
+
 ## [1.1.2] - 2026-04-21
 
 ### Fixed
