@@ -59,7 +59,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: "2_28"
-          args: --release --out dist -i python3.10 --features vendored-openssl
+          args: --release --out dist --compatibility pypi -i python3.10 --features vendored-openssl
           sccache: true
           before-script-linux: |
             if command -v dnf >/dev/null 2>&1; then
@@ -94,7 +94,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --features vendored-openssl
+          args: --release --out dist --compatibility pypi --features vendored-openssl
           sccache: true
       - uses: actions/upload-artifact@v6
         with:
@@ -102,12 +102,14 @@ jobs:
           path: dist
 
   windows:
-    name: Windows wheels (${{ matrix.target }})
+    name: Windows wheels (${{ matrix.python_arch }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [x64]
+        include:
+          - target: x86_64-pc-windows-msvc
+            python_arch: x64
     steps:
       - uses: actions/checkout@v5
         with:
@@ -115,18 +117,18 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          architecture: ${{ matrix.target }}
+          architecture: ${{ matrix.python_arch }}
       - name: Build wheel
         env:
           RUSTFLAGS: -D warnings
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --features vendored-openssl
+          args: --release --out dist --compatibility pypi --features vendored-openssl
           sccache: true
       - uses: actions/upload-artifact@v6
         with:
-          name: wheels-windows-${{ matrix.target }}
+          name: wheels-windows-${{ matrix.python_arch }}
           path: dist
 
   publish:
