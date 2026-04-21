@@ -10,6 +10,8 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-21
+
 ### Fixed
 
 - Release wheel builds on Linux (manylinux), Windows, and macOS x86_64 were

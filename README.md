@@ -45,22 +45,22 @@ header = jwt.get_unverified_header(token)
 아래 블록은 benchmark 스크립트로 자동 생성됩니다. 수동으로 적지 않습니다.
 
 <!-- BENCHMARK:START -->
-_Auto-generated from `scripts/benchmark_same_api.py` on `2026-04-21T02:32:43+00:00` using `--iterations 150 --warmup 20`._
+_Auto-generated from `scripts/benchmark_same_api.py` on `2026-04-21T04:49:00+00:00` using `--iterations 150 --warmup 20`._
 
 현재 same-API benchmark 기준:
 
 | Case | encode | decode | decode_complete |
 | --- | ---: | ---: | ---: |
-| `hs256` | `1.58x` | `2.00x` | `1.93x` |
-| `rs256` | `58.74x` | `2.09x` | `2.12x` |
-| `es256` | `2.91x` | `1.79x` | `1.75x` |
-| `eddsa` | `1.58x` | `1.08x` | `1.19x` |
+| `hs256` | `1.52x` | `1.96x` | `1.95x` |
+| `rs256` | `58.86x` | `2.02x` | `2.03x` |
+| `es256` | `2.89x` | `1.79x` | `1.78x` |
+| `eddsa` | `1.54x` | `1.04x` | `1.11x` |
 
 좋은 구간:
-- `rs256.encode`: `jwt_rs`가 `PyJWT` 대비 `58.74x`
-- `es256.encode`: `jwt_rs`가 `PyJWT` 대비 `2.91x`
+- `rs256.encode`: `jwt_rs`가 `PyJWT` 대비 `58.86x`
+- `es256.encode`: `jwt_rs`가 `PyJWT` 대비 `2.89x`
 - `es256.decode`: `jwt_rs`가 `PyJWT` 대비 `1.79x`
-- `eddsa.encode`: `jwt_rs`가 `PyJWT` 대비 `1.58x`
+- `eddsa.encode`: `jwt_rs`가 `PyJWT` 대비 `1.54x`
 
 아직 미달인 구간:
 - 현재 주요 추적 경로는 모두 `PyJWT` 이상입니다.
