@@ -144,17 +144,28 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/pyjwt-rs
+    # PyPI trusted publishing (OIDC) requires id-token: write. The matching
+    # pending publisher must be registered on pypi.org:
+    #   Owner: StatPan   Repository: pyjwt-rs
+    #   Workflow: release.yml   Environment: pypi
+    # See RELEASING.md §0-1 for the full setup.
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
           path: dist
           merge-multiple: true
       - name: List artifacts
         run: ls -la dist
-      - name: Publish via PyPI API token
+      - name: Publish via PyPI trusted publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          # No password/token: OIDC identity token is exchanged with PyPI.
+          # attestations: true (default for trusted publishing) produces
+          # PEP 740 attestations alongside the uploaded artifacts.
           skip-existing: true
