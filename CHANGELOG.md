@@ -10,6 +10,8 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-04-21
+
 ### Fixed
 
 - Manylinux wheel builds failed because the vendored OpenSSL build requires

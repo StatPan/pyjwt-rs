@@ -12,7 +12,7 @@
 
 현재 기준:
 
-- `pyjwt-rs`: `1.1.1`
+- `pyjwt-rs`: `1.1.2`
 
 ## 2. Compatibility Version
 
