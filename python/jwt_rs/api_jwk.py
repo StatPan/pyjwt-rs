@@ -5,7 +5,12 @@ import time
 from collections.abc import Iterator
 from typing import Any
 
-from .algorithms import get_default_algorithms, has_crypto, requires_cryptography
+from .algorithms import (
+    get_default_algorithms,
+    has_crypto,
+    prepare_rust_jwk_handle,
+    requires_cryptography,
+)
 from .exceptions import InvalidKeyError, MissingCryptographyError, PyJWKError, PyJWKSetError
 
 
@@ -62,6 +67,12 @@ class PyJWK:
             raise
         except Exception as exc:
             raise PyJWKError(f"Unable to find an algorithm for key: {self._jwk_data}") from exc
+        self._rust_decode_handle = prepare_rust_jwk_handle(
+            self._jwk_data, self.algorithm_name, "decode"
+        )
+        self._rust_encode_handle = prepare_rust_jwk_handle(
+            self._jwk_data, self.algorithm_name, "encode"
+        )
 
     @staticmethod
     def from_dict(obj: dict[str, Any], algorithm: str | None = None) -> "PyJWK":

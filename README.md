@@ -1,21 +1,92 @@
 # pyjwt-rs
 
-`PyJWT` 대체를 목표로 하는 Rust 기반 Python 확장 모듈입니다.
+`jwt_rs`는 `PyJWT` 호환을 목표로 하는 Rust 기반 Python 확장 모듈입니다.
 
-현재 포함 기능:
+핵심 목표는 두 가지입니다.
+
+- 같은 코드에 `import jwt_rs as jwt`만 바꿔서 동작할 것
+- Rust 코어로 주요 공개키 JWT workload에서 `PyJWT`보다 더 빠를 것
+
+## Current Status
+
+현재 공개 표면은 `PyJWT` 스타일을 유지합니다.
 
 - `encode(payload, key, algorithm="HS256", headers=None)`
 - `decode(token, key, algorithms=None, options=None, audience=None, issuer=None, leeway=0)`
+- `decode_complete(...)`
 - `get_unverified_header(token)`
+- `PyJWS`, `PyJWK`, algorithm registry
 
-초기 구현 범위:
+현재 지원 알고리즘:
 
 - HMAC: `HS256`, `HS384`, `HS512`
 - RSA: `RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`
-- EC: `ES256`, `ES384`
+- EC: `ES256`, `ES384`, `ES512`, `ES256K`
 - `EdDSA`
 
-## 개발환경
+테스트 상태:
+
+- `320 passed, 4 skipped`
+
+## Usage
+
+```python
+import jwt_rs as jwt
+
+token = jwt.encode({"sub": "alice"}, "secret", algorithm="HS256")
+claims = jwt.decode(token, "secret", algorithms=["HS256"])
+header = jwt.get_unverified_header(token)
+```
+
+## Performance
+
+성능 목표는 `모든 경로 일괄 2배`가 아니라, 먼저 `실사용 공개키 경로`에서 `PyJWT`를 확실히 추월하는 것입니다.
+
+아래 블록은 benchmark 스크립트로 자동 생성됩니다. 수동으로 적지 않습니다.
+
+<!-- BENCHMARK:START -->
+_Auto-generated from `scripts/benchmark_same_api.py` on `2026-04-21T01:10:11+00:00` using `--iterations 150 --warmup 20`._
+
+현재 same-API benchmark 기준:
+
+| Case | encode | decode | decode_complete |
+| --- | ---: | ---: | ---: |
+| `hs256` | `0.32x` | `0.29x` | `0.28x` |
+| `rs256` | `56.60x` | `0.88x` | `0.90x` |
+| `es256` | `1.49x` | `1.15x` | `1.11x` |
+| `eddsa` | `1.21x` | `0.89x` | `0.88x` |
+
+좋은 구간:
+- `rs256.encode`: `jwt_rs`가 `PyJWT` 대비 `56.60x`
+- `es256.encode`: `jwt_rs`가 `PyJWT` 대비 `1.49x`
+- `es256.decode`: `jwt_rs`가 `PyJWT` 대비 `1.15x`
+- `eddsa.encode`: `jwt_rs`가 `PyJWT` 대비 `1.21x`
+
+아직 미달인 구간:
+- `rs256.decode`: 아직 `PyJWT`보다 느림 (`0.88x`)
+- `eddsa.decode`: 아직 `PyJWT`보다 느림 (`0.89x`)
+- `hs256.encode`: 아직 `PyJWT`보다 느림 (`0.32x`)
+- `hs256.decode`: 아직 `PyJWT`보다 느림 (`0.29x`)
+
+해석:
+- `1.00x` 초과면 `jwt_rs`가 빠릅니다.
+- `2.00x` 이상이면 README 목표인 `PyJWT 대비 2배`를 넘긴 것입니다.
+- 현재 목표는 특히 공개키 경로에서 이 값을 끌어올리는 것입니다.
+<!-- BENCHMARK:END -->
+
+벤치 재현 명령:
+
+```bash
+uv run --with pyjwt python scripts/benchmark_same_api.py --iterations 150 --warmup 20
+```
+
+README 자동 갱신 명령:
+
+```bash
+uv run python scripts/update_readme_bench.py
+```
+
+## Development
 
 ```bash
 source "$HOME/.cargo/env"
@@ -23,22 +94,14 @@ cd pyjwt-rs
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
-maturin develop
-pytest
+uv run --with maturin maturin develop
+uv run pytest -q
 ```
 
-## 사용 예시
+## Notes
 
-```python
-import rust_pyjwt as jwt
-
-token = jwt.encode({"sub": "alice"}, "secret", algorithm="HS256")
-claims = jwt.decode(token, "secret", algorithms=["HS256"])
-header = jwt.get_unverified_header(token)
-```
-
-## 주의
-
-- `options={"verify_signature": False}` 는 `jsonwebtoken::insecure_decode` 경로를 사용합니다.
-- 완전한 `PyJWT` API 호환이 아니라, 대체 이행을 위한 핵심 API부터 맞춰둔 상태입니다.
-
+- Python은 호환 인터페이스를 담당하고, 코어 sign/verify hot path는 Rust가 담당합니다.
+- 현재 공개키 알고리즘 경로는 Rust 내부 OpenSSL backend를 사용합니다.
+- `options={"verify_signature": False}` 경로는 별도 insecure decode 흐름을 사용합니다.
+- 완전한 `PyJWT` parity를 목표로 하지만, 성능 최적화를 위해 내부 구현은 `PyJWT`와 다릅니다.
+- 배포 버전과 `PyJWT` 호환 버전 구분은 [VERSIONING.md](/home/statpan/workspace/pypi_lib/pyjwt-rs/VERSIONING.md:1) 에 정리했습니다.

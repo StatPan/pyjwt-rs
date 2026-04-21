@@ -6,8 +6,25 @@ import warnings
 from collections.abc import Sequence
 from typing import Any
 
-from ._rust_pyjwt import RustJWTError, base64url_decode, base64url_encode
-from .algorithms import Algorithm, get_default_algorithms, has_crypto, requires_cryptography
+from ._rust_pyjwt import (
+    RustJWTError,
+    RustKeyHandle,
+    base64url_decode,
+    base64url_encode,
+    decode_segments as rust_decode_segments,
+    sign_prepared as rust_sign_prepared,
+    sign_prepared_raw as rust_sign_prepared_raw,
+    verify_prepared as rust_verify_prepared,
+    verify_prepared_raw as rust_verify_prepared_raw,
+)
+from .algorithms import (
+    Algorithm,
+    HMACAlgorithm,
+    get_default_algorithms,
+    has_crypto,
+    prepare_rust_handle,
+    requires_cryptography,
+)
 
 from .exceptions import (
     DecodeError,
@@ -20,6 +37,23 @@ from .api_jwk import PyJWK
 from .warnings import InsecureKeyLengthWarning, RemovedInPyjwt3Warning
 
 _ALGORITHM_UNSET = object()
+_RUST_PREPARED_ALGORITHMS = {
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "ES256",
+    "ES256K",
+    "ES384",
+    "ES512",
+    "EdDSA",
+}
+
 class PyJWS:
     header_typ = "JWT"
 
@@ -132,16 +166,33 @@ class PyJWS:
 
         alg_obj = self.get_algorithm_by_name(algorithm_)
         raw_key = key.key if isinstance(key, PyJWK) else key
-        prepared_key = alg_obj.prepare_key(raw_key)
+        prepared_handle = None
+        if isinstance(key, PyJWK):
+            prepared_handle = getattr(key, "_rust_encode_handle", None)
+        elif algorithm_ in _RUST_PREPARED_ALGORITHMS:
+            prepared_handle = prepare_rust_handle(raw_key, algorithm_, "encode")
 
-        key_length_msg = alg_obj.check_key_length(prepared_key)
+        prepared_key = prepared_handle
+        key_length_input = prepared_key
+        if prepared_key is None or isinstance(alg_obj, HMACAlgorithm):
+            prepared_key = alg_obj.prepare_key(raw_key)
+            key_length_input = prepared_key
+        elif isinstance(key, PyJWK) and isinstance(alg_obj, HMACAlgorithm):
+            key_length_input = alg_obj.prepare_key(key.key)
+
+        key_length_msg = alg_obj.check_key_length(key_length_input)
         if key_length_msg:
             if self.options.get("enforce_minimum_key_length", False):
                 raise InvalidKeyError(key_length_msg)
             warnings.warn(key_length_msg, InsecureKeyLengthWarning, stacklevel=2)
 
         try:
-            signature = base64url_encode(alg_obj.sign(signing_input, prepared_key))
+            if isinstance(prepared_handle, RustKeyHandle) and not isinstance(alg_obj, HMACAlgorithm):
+                signature = base64url_encode(
+                    rust_sign_prepared_raw(signing_input, prepared_handle, algorithm_)
+                )
+            else:
+                signature = base64url_encode(alg_obj.sign(signing_input, prepared_key))
         except RustJWTError as exc:
             raise InvalidTokenError(str(exc)) from exc
 
@@ -219,22 +270,15 @@ class PyJWS:
         return headers
 
     def _load(self, jwt: str | bytes) -> tuple[bytes, bytes, dict[str, Any], bytes]:
-        if isinstance(jwt, str):
-            jwt = jwt.encode("utf-8")
-
-        if not isinstance(jwt, bytes):
+        if not isinstance(jwt, (str, bytes)):
             raise DecodeError(f"Invalid token type. Token must be a {bytes}")
 
         try:
-            signing_input, crypto_segment = jwt.rsplit(b".", 1)
-            header_segment, payload_segment = signing_input.split(b".", 1)
-        except ValueError as err:
+            payload, signing_input, header_data, signature = rust_decode_segments(jwt)
+        except RustJWTError as err:
+            raise DecodeError(str(err)) from err
+        except (TypeError, ValueError, binascii.Error) as err:
             raise DecodeError("Not enough segments") from err
-
-        try:
-            header_data = base64url_decode(header_segment.decode("ascii"))
-        except (TypeError, ValueError, binascii.Error, RustJWTError) as err:
-            raise DecodeError("Invalid header padding") from err
 
         try:
             header: dict[str, Any] = json.loads(header_data)
@@ -243,16 +287,6 @@ class PyJWS:
 
         if not isinstance(header, dict):
             raise DecodeError("Invalid header string: must be a json object")
-
-        try:
-            payload = base64url_decode(payload_segment.decode("ascii"))
-        except (TypeError, ValueError, binascii.Error, RustJWTError) as err:
-            raise DecodeError("Invalid payload padding") from err
-
-        try:
-            signature = base64url_decode(crypto_segment.decode("ascii"))
-        except (TypeError, ValueError, binascii.Error, RustJWTError) as err:
-            raise DecodeError("Invalid crypto padding") from err
 
         return payload, signing_input, header, signature
 
@@ -277,22 +311,39 @@ class PyJWS:
 
         if isinstance(key, PyJWK):
             alg_obj = key.Algorithm
-            prepared_key = alg_obj.prepare_key(key.key)
+            prepared_key = getattr(key, "_rust_decode_handle", None)
+            key_length_input = alg_obj.prepare_key(key.key) if isinstance(alg_obj, HMACAlgorithm) else prepared_key
+            if prepared_key is None or isinstance(alg_obj, HMACAlgorithm):
+                prepared_key = alg_obj.prepare_key(key.key)
+                key_length_input = prepared_key
         else:
             try:
                 alg_obj = self.get_algorithm_by_name(alg)
             except NotImplementedError as exc:
                 raise InvalidAlgorithmError("Algorithm not supported") from exc
-            prepared_key = alg_obj.prepare_key(key)
+            prepared_key = None
+            if alg in _RUST_PREPARED_ALGORITHMS:
+                prepared_key = prepare_rust_handle(key, alg, "decode")
+            key_length_input = prepared_key
+            if prepared_key is None or isinstance(alg_obj, HMACAlgorithm):
+                prepared_key = alg_obj.prepare_key(key)
+                key_length_input = prepared_key
 
-        key_length_msg = alg_obj.check_key_length(prepared_key)
+        key_length_msg = alg_obj.check_key_length(key_length_input)
         if key_length_msg:
             if self.options.get("enforce_minimum_key_length", False):
                 raise InvalidKeyError(key_length_msg)
             warnings.warn(key_length_msg, InsecureKeyLengthWarning, stacklevel=4)
 
         try:
-            ok = alg_obj.verify(signing_input, prepared_key, signature)
+            if (
+                isinstance(prepared_key, RustKeyHandle)
+                and alg in _RUST_PREPARED_ALGORITHMS
+                and not isinstance(alg_obj, HMACAlgorithm)
+            ):
+                ok = rust_verify_prepared_raw(signature, signing_input, prepared_key, alg)
+            else:
+                ok = alg_obj.verify(signing_input, prepared_key, signature)
         except RustJWTError as exc:
             raise InvalidTokenError(str(exc)) from exc
 

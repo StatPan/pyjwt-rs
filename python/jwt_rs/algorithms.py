@@ -5,6 +5,7 @@ import hmac
 import json
 import sys
 from abc import ABC, abstractmethod
+from collections.abc import Hashable
 from typing import Any, ClassVar, Literal, overload
 
 if sys.version_info >= (3, 11):
@@ -16,10 +17,18 @@ from ._rust_pyjwt import (
     RustInvalidAlgorithmError,
     RustInvalidKeyError,
     RustJWTError,
+    RustKeyHandle,
     base64url_decode,
     base64url_encode,
+    hash_digest as rust_hash_digest,
+    prepare_jwk_handle as rust_prepare_jwk_handle,
+    prepare_key_handle as rust_prepare_key_handle,
     sign as rust_sign,
+    sign_prepared as rust_sign_prepared,
+    sign_prepared_raw as rust_sign_prepared_raw,
     verify as rust_verify,
+    verify_prepared as rust_verify_prepared,
+    verify_prepared_raw as rust_verify_prepared_raw,
 )
 from .exceptions import InvalidKeyError
 from .types import HashlibHash, JWKDict
@@ -53,6 +62,50 @@ requires_cryptography = {
     "PS512",
     "EdDSA",
 }
+
+_HANDLE_CACHE: dict[tuple[str, str, Hashable], RustKeyHandle] = {}
+
+
+def _cache_key_value(key: Any) -> Hashable | None:
+    if isinstance(key, bytes):
+        return key
+    if isinstance(key, str):
+        return key.encode("utf-8")
+    if isinstance(key, RustKeyHandle):
+        return ("handle", key.id)
+    if isinstance(key, dict):
+        return json.dumps(key, sort_keys=True, separators=(",", ":"))
+    return None
+
+
+def prepare_rust_handle(key: Any, algorithm: str, usage: str) -> RustKeyHandle | None:
+    cache_value = _cache_key_value(key)
+    if cache_value is None:
+        return None
+    cache_key = (algorithm, usage, cache_value)
+    cached = _HANDLE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        handle = rust_prepare_key_handle(key, algorithm, usage)
+    except (RustInvalidKeyError, RustInvalidAlgorithmError, TypeError):
+        return None
+    _HANDLE_CACHE[cache_key] = handle
+    return handle
+
+
+def prepare_rust_jwk_handle(jwk: str | JWKDict, algorithm: str, usage: str) -> RustKeyHandle | None:
+    jwk_json = json.dumps(jwk, sort_keys=True, separators=(",", ":")) if isinstance(jwk, dict) else jwk
+    cache_key = (algorithm, usage, jwk_json)
+    cached = _HANDLE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        handle = rust_prepare_jwk_handle(jwk_json, algorithm, usage)
+    except (RustInvalidKeyError, RustInvalidAlgorithmError, TypeError):
+        return None
+    _HANDLE_CACHE[cache_key] = handle
+    return handle
 
 
 def force_bytes(value: str | bytes) -> bytes:
@@ -209,6 +262,8 @@ class HMACAlgorithm(Algorithm):
 
     def sign(self, msg: bytes, key: bytes) -> bytes:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_sign_prepared_raw(msg, key, self.name)
             return base64url_decode(rust_sign(msg, key, self.name))
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -219,6 +274,8 @@ class HMACAlgorithm(Algorithm):
 
     def verify(self, msg: bytes, key: bytes, sig: bytes) -> bool:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_verify_prepared_raw(sig, msg, key, self.name)
             return rust_verify(base64url_encode(sig), msg, key, self.name)
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -241,7 +298,12 @@ class HMACAlgorithm(Algorithm):
         return jwk if as_dict else json.dumps(jwk)
 
     def compute_hash_digest(self, msg: bytes) -> bytes:
-        return self.hash_alg(msg).digest()
+        try:
+            return rust_hash_digest(msg, self.name)
+        except RustInvalidAlgorithmError as exc:
+            raise NotImplementedError("Algorithm not supported") from exc
+        except RustJWTError as exc:
+            raise InvalidKeyError(str(exc)) from exc
 
     @staticmethod
     def from_jwk(jwk: str | JWKDict) -> bytes:
@@ -272,6 +334,8 @@ class _RustBackedAlgorithm(Algorithm):
 
     def sign(self, msg: bytes, key: Any) -> bytes:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_sign_prepared_raw(msg, key, self.name)
             return base64url_decode(rust_sign(msg, _key_to_pem(key), self.name))
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -282,6 +346,8 @@ class _RustBackedAlgorithm(Algorithm):
 
     def verify(self, msg: bytes, key: Any, sig: bytes) -> bool:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_verify_prepared_raw(sig, msg, key, self.name)
             return rust_verify(base64url_encode(sig), msg, _key_to_pem(key), self.name)
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -353,11 +419,12 @@ class RSAAlgorithm(_RustBackedAlgorithm):
         return None
 
     def compute_hash_digest(self, msg: bytes) -> bytes:
-        from cryptography.hazmat.primitives import hashes as _h
-        from cryptography.hazmat.backends import default_backend
-        digest = _h.Hash(self.hash_alg, backend=default_backend())
-        digest.update(msg)
-        return digest.finalize()
+        try:
+            return rust_hash_digest(msg, self.name)
+        except RustInvalidAlgorithmError as exc:
+            raise NotImplementedError("Algorithm not supported") from exc
+        except RustJWTError as exc:
+            raise InvalidKeyError(str(exc)) from exc
 
     @overload
     @staticmethod
@@ -553,6 +620,8 @@ class ECAlgorithm(_RustBackedAlgorithm):
 
     def sign(self, msg: bytes, key: Any) -> bytes:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_sign_prepared_raw(msg, key, self.name)
             return base64url_decode(rust_sign(msg, _key_to_pem(key), self._alg_for_key(key)))
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -563,6 +632,8 @@ class ECAlgorithm(_RustBackedAlgorithm):
 
     def verify(self, msg: bytes, key: Any, sig: bytes) -> bool:
         try:
+            if isinstance(key, RustKeyHandle):
+                return rust_verify_prepared_raw(sig, msg, key, self.name)
             return rust_verify(base64url_encode(sig), msg, _key_to_pem(key), self._alg_for_key(key))
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
@@ -642,12 +713,12 @@ class ECAlgorithm(_RustBackedAlgorithm):
             raise InvalidKeyError(f"Missing required field: {exc}") from exc
         except Exception as exc:
             raise InvalidKeyError(str(exc)) from exc
-        if len(x_bytes) != len(y_bytes):
-            raise InvalidKeyError("EC coordinates must be equally long")
         if len(x_bytes) > coord_len or len(y_bytes) > coord_len:
             raise InvalidKeyError(
                 f"EC coordinate length {len(x_bytes)} exceeds expected {coord_len} for {crv}"
             )
+        x_bytes = x_bytes.rjust(coord_len, b"\x00")
+        y_bytes = y_bytes.rjust(coord_len, b"\x00")
         x = int.from_bytes(x_bytes, "big")
         y = int.from_bytes(y_bytes, "big")
         if "d" in obj:

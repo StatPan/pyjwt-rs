@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import warnings
 from calendar import timegm
 from collections.abc import Container, Iterable, Sequence
@@ -242,29 +243,39 @@ class PyJWT:
         if audience is not None and not isinstance(audience, (str, Iterable)):
             raise TypeError("audience must be a string, iterable or None")
 
-        self._validate_required_claims(payload, options["require"])
+        required_claims = options["require"]
+        verify_iat = options["verify_iat"]
+        verify_nbf = options["verify_nbf"]
+        verify_exp = options["verify_exp"]
+        verify_iss = options["verify_iss"]
+        verify_aud = options["verify_aud"]
+        verify_sub = options["verify_sub"]
+        verify_jti = options["verify_jti"]
+        strict_aud = options.get("strict_aud", False)
 
-        now = datetime.now(tz=timezone.utc).timestamp()
+        self._validate_required_claims(payload, required_claims)
 
-        if "iat" in payload and options["verify_iat"]:
+        now = time.time()
+
+        if verify_iat and "iat" in payload:
             self._validate_iat(payload, now, leeway)
 
-        if "nbf" in payload and options["verify_nbf"]:
+        if verify_nbf and "nbf" in payload:
             self._validate_nbf(payload, now, leeway)
 
-        if "exp" in payload and options["verify_exp"]:
+        if verify_exp and "exp" in payload:
             self._validate_exp(payload, now, leeway)
 
-        if options["verify_iss"]:
+        if verify_iss:
             self._validate_iss(payload, issuer)
 
-        if options["verify_aud"]:
-            self._validate_aud(payload, audience, strict=options.get("strict_aud", False))
+        if verify_aud:
+            self._validate_aud(payload, audience, strict=strict_aud)
 
-        if options["verify_sub"]:
+        if verify_sub:
             self._validate_sub(payload, subject)
 
-        if options["verify_jti"]:
+        if verify_jti:
             self._validate_jti(payload)
 
     def _validate_required_claims(
@@ -273,7 +284,7 @@ class PyJWT:
         claims: Iterable[str],
     ) -> None:
         for claim in claims:
-            if payload.get(claim) is None:
+            if claim not in payload or payload[claim] is None:
                 raise MissingRequiredClaimError(claim)
 
     def _validate_sub(self, payload: dict[str, Any], subject: str | None = None) -> None:
@@ -385,4 +396,3 @@ _jwt_global_obj._jws = _jws_global_obj
 encode = _jwt_global_obj.encode
 decode_complete = _jwt_global_obj.decode_complete
 decode = _jwt_global_obj.decode
-
