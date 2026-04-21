@@ -10,6 +10,8 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-04-21
+
 ### Fixed
 
 - `before-script-linux` installed `perl-FindBin` as a separate package,

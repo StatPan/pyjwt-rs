@@ -11,60 +11,60 @@
 <rect x="80" y="110" width="936" height="114" fill="#111826" rx="6"/>
 <rect x="80" y="338" width="936" height="114" fill="#111826" rx="6"/>
 <line x1="220.00" y1="102" x2="220.00" y2="570" stroke="#1f2937" stroke-width="1" />
-<line x1="321.13" y1="102" x2="321.13" y2="570" stroke="#8b949e" stroke-width="1.4"  stroke-dasharray="4 4"/>
-<line x1="422.27" y1="102" x2="422.27" y2="570" stroke="#1f2937" stroke-width="1" />
-<line x1="555.96" y1="102" x2="555.96" y2="570" stroke="#1f2937" stroke-width="1" />
-<line x1="657.10" y1="102" x2="657.10" y2="570" stroke="#1f2937" stroke-width="1" />
-<line x1="758.23" y1="102" x2="758.23" y2="570" stroke="#1f2937" stroke-width="1" />
-<line x1="891.92" y1="102" x2="891.92" y2="570" stroke="#1f2937" stroke-width="1" />
-<text x="327.13" y="98" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" font-weight="600">PyJWT · 1.00×</text>
+<line x1="321.82" y1="102" x2="321.82" y2="570" stroke="#8b949e" stroke-width="1.4"  stroke-dasharray="4 4"/>
+<line x1="423.65" y1="102" x2="423.65" y2="570" stroke="#1f2937" stroke-width="1" />
+<line x1="558.25" y1="102" x2="558.25" y2="570" stroke="#1f2937" stroke-width="1" />
+<line x1="660.08" y1="102" x2="660.08" y2="570" stroke="#1f2937" stroke-width="1" />
+<line x1="761.90" y1="102" x2="761.90" y2="570" stroke="#1f2937" stroke-width="1" />
+<line x1="896.51" y1="102" x2="896.51" y2="570" stroke="#1f2937" stroke-width="1" />
+<text x="327.82" y="98" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" font-weight="600">PyJWT · 1.00×</text>
 <text x="70" y="133.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="0.5">HS256</text>
 <text x="208" y="133.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">encode</text>
-<rect x="220.00" y="113.00" width="155.54" height="32" rx="4" fill="url(#gok)"/>
-<text x="385.54" y="133.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.45×</text>
+<rect x="220.00" y="113.00" width="159.13" height="32" rx="4" fill="url(#gok)"/>
+<text x="389.13" y="133.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.48×</text>
 <text x="208" y="171.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode</text>
-<rect x="220.00" y="151.00" width="199.51" height="32" rx="4" fill="url(#gok)"/>
-<text x="429.51" y="171.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.96×</text>
+<rect x="220.00" y="151.00" width="198.23" height="32" rx="4" fill="url(#gok)"/>
+<text x="428.23" y="171.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.93×</text>
 <text x="208" y="209.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode_complete</text>
-<rect x="220.00" y="189.00" width="197.91" height="32" rx="4" fill="url(#gok)"/>
-<text x="427.91" y="209.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.94×</text>
+<rect x="220.00" y="189.00" width="196.19" height="32" rx="4" fill="url(#gok)"/>
+<text x="426.19" y="209.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.90×</text>
 <text x="70" y="247.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="0.5">RS256</text>
 <text x="208" y="247.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">encode</text>
-<rect x="220.00" y="227.00" width="696.21" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
-<text x="926.21" y="247.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">59.06×</text>
+<rect x="220.00" y="227.00" width="695.91" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
+<text x="925.91" y="247.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">57.06×</text>
 <text x="208" y="285.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode</text>
-<rect x="220.00" y="265.00" width="206.33" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
-<text x="436.33" y="285.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.06×</text>
+<rect x="220.00" y="265.00" width="203.68" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
+<text x="433.68" y="285.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.00×</text>
 <text x="208" y="323.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode_complete</text>
-<rect x="220.00" y="303.00" width="216.72" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
-<text x="446.72" y="323.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.21×</text>
+<rect x="220.00" y="303.00" width="210.19" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
+<text x="440.19" y="323.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.09×</text>
 <text x="70" y="361.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="0.5">ES256</text>
 <text x="208" y="361.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">encode</text>
-<rect x="220.00" y="341.00" width="251.59" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
-<text x="481.59" y="361.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.80×</text>
+<rect x="220.00" y="341.00" width="251.97" height="32" rx="4" fill="url(#gfast)" filter="url(#glow)"/>
+<text x="481.97" y="361.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">2.78×</text>
 <text x="208" y="399.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode</text>
-<rect x="220.00" y="379.00" width="188.15" height="32" rx="4" fill="url(#gok)"/>
-<text x="418.15" y="399.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.82×</text>
+<rect x="220.00" y="379.00" width="183.50" height="32" rx="4" fill="url(#gok)"/>
+<text x="413.50" y="399.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.74×</text>
 <text x="208" y="437.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode_complete</text>
-<rect x="220.00" y="417.00" width="190.20" height="32" rx="4" fill="url(#gok)"/>
-<text x="420.20" y="437.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.84×</text>
+<rect x="220.00" y="417.00" width="192.21" height="32" rx="4" fill="url(#gok)"/>
+<text x="422.21" y="437.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.85×</text>
 <text x="70" y="475.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="0.5">EDDSA</text>
 <text x="208" y="475.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">encode</text>
-<rect x="220.00" y="455.00" width="168.92" height="32" rx="4" fill="url(#gok)"/>
-<text x="398.92" y="475.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.59×</text>
+<rect x="220.00" y="455.00" width="171.64" height="32" rx="4" fill="url(#gok)"/>
+<text x="401.64" y="475.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.61×</text>
 <text x="208" y="513.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode</text>
-<rect x="220.00" y="493.00" width="113.55" height="32" rx="4" fill="url(#gok)"/>
-<text x="343.55" y="513.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.09×</text>
+<rect x="220.00" y="493.00" width="110.71" height="32" rx="4" fill="url(#gok)"/>
+<text x="340.71" y="513.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.06×</text>
 <text x="208" y="551.00" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" text-anchor="end">decode_complete</text>
-<rect x="220.00" y="531.00" width="111.63" height="32" rx="4" fill="url(#gok)"/>
-<text x="341.63" y="551.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.07×</text>
+<rect x="220.00" y="531.00" width="110.76" height="32" rx="4" fill="url(#gok)"/>
+<text x="340.76" y="551.00" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="12" font-weight="700">1.06×</text>
 <text x="220.00" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">0.5×</text>
-<text x="321.13" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">1×</text>
-<text x="422.27" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">2×</text>
-<text x="555.96" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">5×</text>
-<text x="657.10" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">10×</text>
-<text x="758.23" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">20×</text>
-<text x="891.92" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">50×</text>
+<text x="321.82" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">1×</text>
+<text x="423.65" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">2×</text>
+<text x="558.25" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">5×</text>
+<text x="660.08" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">10×</text>
+<text x="761.90" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">20×</text>
+<text x="896.51" y="586" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">50×</text>
 <text x="590.00" y="610" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="middle">Speedup vs PyJWT (PyJWT = 1.00×)</text>
 <text x="1008" y="56" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, Inter, Roboto, &apos;Helvetica Neue&apos;, Arial, sans-serif" font-size="11" text-anchor="end">&lt; 1×</text>
 <rect x="912" y="46" width="12" height="10" rx="2" fill="url(#gslow)"/>
