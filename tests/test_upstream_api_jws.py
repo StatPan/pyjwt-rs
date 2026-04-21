@@ -842,6 +842,41 @@ class TestJWS:
         assert "some_decimal" in header
         assert header["some_decimal"] == "it worked"
 
+    def test_custom_json_encoder_handles_nonstandard_header_values(
+        self, jws: PyJWS, payload: bytes
+    ) -> None:
+        class CustomJSONEncoder(json.JSONEncoder):
+            def default(self, o: object) -> list[int]:
+                assert isinstance(o, set)
+                return sorted(o)
+
+        token = jws.encode(
+            payload,
+            HS256_SECRET,
+            headers={"x-custom": {3, 1, 2}},
+            json_encoder=CustomJSONEncoder,
+        )
+
+        header, *_ = token.split(".")
+        header = json.loads(base64url_decode(header))
+
+        assert header["x-custom"] == [1, 2, 3]
+
+    def test_custom_json_encoder_does_not_bypass_kid_validation(
+        self, jws: PyJWS, payload: bytes
+    ) -> None:
+        class CustomJSONEncoder(json.JSONEncoder):
+            def default(self, o: object) -> str:
+                return "serialized"
+
+        with pytest.raises(InvalidTokenError, match="Key ID header parameter must be a string"):
+            jws.encode(
+                payload,
+                HS256_SECRET,
+                headers={"kid": object()},
+                json_encoder=CustomJSONEncoder,
+            )
+
     def test_encode_headers_parameter_adds_headers(
         self, jws: PyJWS, payload: bytes
     ) -> None:

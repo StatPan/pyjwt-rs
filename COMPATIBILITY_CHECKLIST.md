@@ -59,8 +59,9 @@
   근거: [python/jwt_rs/api_jws.py](/home/statpan/workspace/pypi_lib/pyjwt-rs/python/jwt_rs/api_jws.py:153)
 - [x] detached payload (`b64=False`) 지원
   근거: [python/jwt_rs/api_jws.py](/home/statpan/workspace/pypi_lib/pyjwt-rs/python/jwt_rs/api_jws.py:148)
-- [-] `json_encoder` 완전 호환
-  `json.dumps(..., cls=json_encoder)` 는 지원하지만 upstream의 전체 커스텀 알고리즘/객체 조합까지 검증하진 않음
+- [x] `json_encoder` 호환
+  payload / header 모두 `json.dumps(..., cls=json_encoder)` 경로를 사용하며,
+  datetime claim 변환 이후의 payload 값과 비표준 header 값에 대한 회귀 테스트를 추가해 동작을 고정함
 
 ## 4. Decode / Validation Behavior
 

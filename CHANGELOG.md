@@ -10,18 +10,6 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
-### Changed
-
-- Release workflow now publishes to PyPI via **Trusted Publishing (OIDC)**
-  instead of the `PYPI_API_TOKEN` fallback that shipped `v1.2.0`. Added
-  `id-token: write` / `attestations: write` permissions to the publish
-  job and removed the explicit `password:` argument. The `environment:
-  pypi` gate is preserved. PEP 740 attestations are produced for every
-  artifact, which were disabled under the token path.
-- Bumped `actions/download-artifact` from `v5` (Node 20) to `v8`
-  (Node 24) to clear the runner deprecation annotation. All other
-  actions already run on Node 24.
-
 ## [1.2.0] - 2026-04-21
 
 ## [1.1.3] - 2026-04-21

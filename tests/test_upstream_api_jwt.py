@@ -733,6 +733,25 @@ class TestJWT:
 
         assert payload == {"some_decimal": "it worked"}
 
+    def test_custom_json_encoder_handles_nested_values_after_datetime_conversion(
+        self, jwt: PyJWT
+    ) -> None:
+        class CustomJSONEncoder(json.JSONEncoder):
+            def default(self, o: object) -> list[int]:
+                assert isinstance(o, set)
+                return sorted(o)
+
+        data = {
+            "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=5),
+            "values": {3, 1, 2},
+        }
+
+        token = jwt.encode(data, HS256_SECRET, json_encoder=CustomJSONEncoder)
+        payload = jwt.decode(token, HS256_SECRET, algorithms=["HS256"])
+
+        assert isinstance(payload["exp"], int)
+        assert payload["values"] == [1, 2, 3]
+
     def test_decode_with_verify_exp_option(
         self, jwt: PyJWT, payload: dict[str, object]
     ) -> None:
