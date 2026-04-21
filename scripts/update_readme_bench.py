@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import plot_benchmark  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,11 +22,7 @@ DEFAULT_WARMUP = 20
 
 def run_benchmark() -> dict:
     command = [
-        "uv",
-        "run",
-        "--with",
-        "pyjwt",
-        "python",
+        sys.executable,
         str(BENCH_SCRIPT),
         "--iterations",
         str(DEFAULT_ITERATIONS),
@@ -116,6 +116,8 @@ def main() -> None:
     block = build_benchmark_block(data)
     update_readme(block)
     print("README benchmark section updated.")
+    chart_path = plot_benchmark.render(data["speedups"])
+    print(f"Benchmark chart updated: {chart_path.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -82,10 +82,16 @@ class PyJWT:
                 "Expecting a dict object, as JWT only supports JSON objects as payloads."
             )
 
-        payload = payload.copy()
-        for time_claim in ["exp", "iat", "nbf"]:
-            if isinstance(payload.get(time_claim), datetime):
-                payload[time_claim] = timegm(payload[time_claim].utctimetuple())
+        if (
+            isinstance(payload.get("exp"), datetime)
+            or isinstance(payload.get("iat"), datetime)
+            or isinstance(payload.get("nbf"), datetime)
+        ):
+            payload = payload.copy()
+            for time_claim in ("exp", "iat", "nbf"):
+                value = payload.get(time_claim)
+                if isinstance(value, datetime):
+                    payload[time_claim] = timegm(value.utctimetuple())
 
         if "iss" in payload and not isinstance(payload["iss"], str):
             raise TypeError("Issuer (iss) must be a string.")
@@ -142,8 +148,16 @@ class PyJWT:
 
         if options is None:
             verify_signature = True
+            merged_options = self.options
+            sig_options = None
         else:
             verify_signature = options.get("verify_signature", True)
+            merged_options = self._merge_options(options)
+            sig_options = {"verify_signature": verify_signature}
+            if "enforce_minimum_key_length" in merged_options:
+                sig_options["enforce_minimum_key_length"] = merged_options[
+                    "enforce_minimum_key_length"
+                ]
 
         if verify is not None and verify != verify_signature:
             warnings.warn(
@@ -154,13 +168,6 @@ class PyJWT:
                 stacklevel=2,
             )
 
-        merged_options = self._merge_options(options)
-
-        sig_options = {"verify_signature": verify_signature}
-        if "enforce_minimum_key_length" in merged_options:
-            sig_options["enforce_minimum_key_length"] = merged_options[
-                "enforce_minimum_key_length"
-            ]
         decoded = self._jws.decode_complete(
             jwt,
             key=key,
@@ -244,38 +251,35 @@ class PyJWT:
             raise TypeError("audience must be a string, iterable or None")
 
         required_claims = options["require"]
-        verify_iat = options["verify_iat"]
-        verify_nbf = options["verify_nbf"]
-        verify_exp = options["verify_exp"]
-        verify_iss = options["verify_iss"]
-        verify_aud = options["verify_aud"]
-        verify_sub = options["verify_sub"]
-        verify_jti = options["verify_jti"]
-        strict_aud = options.get("strict_aud", False)
+        if required_claims:
+            self._validate_required_claims(payload, required_claims)
 
-        self._validate_required_claims(payload, required_claims)
+        now: float | None = None
 
-        now = time.time()
-
-        if verify_iat and "iat" in payload:
+        if options["verify_iat"] and "iat" in payload:
+            now = time.time()
             self._validate_iat(payload, now, leeway)
 
-        if verify_nbf and "nbf" in payload:
+        if options["verify_nbf"] and "nbf" in payload:
+            if now is None:
+                now = time.time()
             self._validate_nbf(payload, now, leeway)
 
-        if verify_exp and "exp" in payload:
+        if options["verify_exp"] and "exp" in payload:
+            if now is None:
+                now = time.time()
             self._validate_exp(payload, now, leeway)
 
-        if verify_iss:
+        if options["verify_iss"]:
             self._validate_iss(payload, issuer)
 
-        if verify_aud:
-            self._validate_aud(payload, audience, strict=strict_aud)
+        if options["verify_aud"]:
+            self._validate_aud(payload, audience, strict=options.get("strict_aud", False))
 
-        if verify_sub:
+        if options["verify_sub"] and "sub" in payload:
             self._validate_sub(payload, subject)
 
-        if verify_jti:
+        if options["verify_jti"] and "jti" in payload:
             self._validate_jti(payload)
 
     def _validate_required_claims(

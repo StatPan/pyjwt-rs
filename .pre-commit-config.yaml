@@ -1,0 +1,14 @@
+# Run `pre-commit install` once to activate.
+# Only triggers on source/build changes that can affect benchmarks;
+# docs-only commits skip the slow regeneration step.
+repos:
+  - repo: local
+    hooks:
+      - id: refresh-benchmark-artifacts
+        name: Regenerate README bench table + docs/benchmark.png
+        entry: uv run --extra bench python scripts/update_readme_bench.py
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(src/.*\.rs|python/jwt_rs/.*\.py|Cargo\.toml|Cargo\.lock|pyproject\.toml)$
+        stages: [pre-commit]

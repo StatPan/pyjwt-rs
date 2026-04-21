@@ -1,6 +1,7 @@
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ecdsa::signature::Verifier;
+use hmac::{Hmac, Mac};
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, crypto};
 use k256::ecdsa::{
@@ -85,6 +86,7 @@ enum StoredKey {
     EcPublic(EcKey<Public>, usize),
     EdPrivate(PKey<Private>),
     EdPublic(PKey<Public>),
+    Hmac(Vec<u8>),
 }
 
 fn extract_key_bytes(key: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
@@ -354,7 +356,59 @@ fn raw_jwt_signature_to_ecdsa_sig(signature: &str, coordinate_size: usize) -> Py
     EcdsaSig::from_private_components(r, s).map_err(openssl_jwt_err)
 }
 
-fn sign_with_rsa(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResult<String> {
+fn sign_hmac_raw(message: &[u8], key: &[u8], algorithm: &str) -> PyResult<Vec<u8>> {
+    match algorithm {
+        "HS256" => {
+            let mut mac = Hmac::<Sha256>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.finalize().into_bytes().to_vec())
+        }
+        "HS384" => {
+            let mut mac = Hmac::<Sha384>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.finalize().into_bytes().to_vec())
+        }
+        "HS512" => {
+            let mut mac = Hmac::<Sha512>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.finalize().into_bytes().to_vec())
+        }
+        other => Err(invalid_algorithm_err(format!(
+            "not an HMAC algorithm: {other}"
+        ))),
+    }
+}
+
+fn verify_hmac_raw(signature: &[u8], message: &[u8], key: &[u8], algorithm: &str) -> PyResult<bool> {
+    match algorithm {
+        "HS256" => {
+            let mut mac = Hmac::<Sha256>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.verify_slice(signature).is_ok())
+        }
+        "HS384" => {
+            let mut mac = Hmac::<Sha384>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.verify_slice(signature).is_ok())
+        }
+        "HS512" => {
+            let mut mac = Hmac::<Sha512>::new_from_slice(key)
+                .map_err(|err| invalid_key_err(err.to_string()))?;
+            mac.update(message);
+            Ok(mac.verify_slice(signature).is_ok())
+        }
+        other => Err(invalid_algorithm_err(format!(
+            "not an HMAC algorithm: {other}"
+        ))),
+    }
+}
+
+fn sign_rsa_raw(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResult<Vec<u8>> {
     let digest = message_digest_for_algorithm(algorithm)?;
     let mut signer = OpenSslSigner::new(digest, key).map_err(openssl_jwt_err)?;
     if algorithm.starts_with("PS") {
@@ -371,8 +425,36 @@ fn sign_with_rsa(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResu
             .map_err(openssl_jwt_err)?;
     }
     signer.update(message).map_err(openssl_jwt_err)?;
-    let signature = signer.sign_to_vec().map_err(openssl_jwt_err)?;
-    Ok(URL_SAFE_NO_PAD.encode(signature))
+    signer.sign_to_vec().map_err(openssl_jwt_err)
+}
+
+fn sign_with_rsa(message: &[u8], key: &PKey<Private>, algorithm: &str) -> PyResult<String> {
+    Ok(URL_SAFE_NO_PAD.encode(sign_rsa_raw(message, key, algorithm)?))
+}
+
+fn verify_rsa_public_raw(
+    signature: &[u8],
+    message: &[u8],
+    key: &PKey<Public>,
+    algorithm: &str,
+) -> PyResult<bool> {
+    let digest = message_digest_for_algorithm(algorithm)?;
+    let mut verifier = OpenSslVerifier::new(digest, key).map_err(openssl_jwt_err)?;
+    if algorithm.starts_with("PS") {
+        verifier
+            .set_rsa_padding(Padding::PKCS1_PSS)
+            .map_err(openssl_jwt_err)?;
+        verifier.set_rsa_mgf1_md(digest).map_err(openssl_jwt_err)?;
+        verifier
+            .set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH)
+            .map_err(openssl_jwt_err)?;
+    } else {
+        verifier
+            .set_rsa_padding(Padding::PKCS1)
+            .map_err(openssl_jwt_err)?;
+    }
+    verifier.update(message).map_err(openssl_jwt_err)?;
+    verifier.verify(signature).map_err(openssl_jwt_err)
 }
 
 fn verify_with_rsa_public(
@@ -381,10 +463,19 @@ fn verify_with_rsa_public(
     key: &PKey<Public>,
     algorithm: &str,
 ) -> PyResult<bool> {
-    let digest = message_digest_for_algorithm(algorithm)?;
     let signature = URL_SAFE_NO_PAD
         .decode(signature)
         .map_err(|err| jwt_err(err.to_string()))?;
+    verify_rsa_public_raw(&signature, message, key, algorithm)
+}
+
+fn verify_rsa_private_raw(
+    signature: &[u8],
+    message: &[u8],
+    key: &PKey<Private>,
+    algorithm: &str,
+) -> PyResult<bool> {
+    let digest = message_digest_for_algorithm(algorithm)?;
     let mut verifier = OpenSslVerifier::new(digest, key).map_err(openssl_jwt_err)?;
     if algorithm.starts_with("PS") {
         verifier
@@ -400,7 +491,7 @@ fn verify_with_rsa_public(
             .map_err(openssl_jwt_err)?;
     }
     verifier.update(message).map_err(openssl_jwt_err)?;
-    verifier.verify(&signature).map_err(openssl_jwt_err)
+    verifier.verify(signature).map_err(openssl_jwt_err)
 }
 
 fn verify_with_rsa_private(
@@ -409,34 +500,48 @@ fn verify_with_rsa_private(
     key: &PKey<Private>,
     algorithm: &str,
 ) -> PyResult<bool> {
-    let digest = message_digest_for_algorithm(algorithm)?;
     let signature = URL_SAFE_NO_PAD
         .decode(signature)
         .map_err(|err| jwt_err(err.to_string()))?;
-    let mut verifier = OpenSslVerifier::new(digest, key).map_err(openssl_jwt_err)?;
-    if algorithm.starts_with("PS") {
-        verifier
-            .set_rsa_padding(Padding::PKCS1_PSS)
-            .map_err(openssl_jwt_err)?;
-        verifier.set_rsa_mgf1_md(digest).map_err(openssl_jwt_err)?;
-        verifier
-            .set_rsa_pss_saltlen(RsaPssSaltlen::DIGEST_LENGTH)
-            .map_err(openssl_jwt_err)?;
-    } else {
-        verifier
-            .set_rsa_padding(Padding::PKCS1)
-            .map_err(openssl_jwt_err)?;
-    }
-    verifier.update(message).map_err(openssl_jwt_err)?;
-    verifier.verify(&signature).map_err(openssl_jwt_err)
+    verify_rsa_private_raw(&signature, message, key, algorithm)
 }
 
-fn sign_with_ec(message: &[u8], key: &EcKey<Private>, algorithm: &str, coordinate_size: usize) -> PyResult<String> {
+fn sign_ec_raw(
+    message: &[u8],
+    key: &EcKey<Private>,
+    algorithm: &str,
+    coordinate_size: usize,
+) -> PyResult<Vec<u8>> {
     let digest = compute_digest(message, algorithm)?;
     let signature = EcdsaSig::sign(&digest, key.as_ref()).map_err(openssl_jwt_err)?;
     let mut raw = pad_signature_component(signature.r(), coordinate_size)?;
     raw.extend_from_slice(&pad_signature_component(signature.s(), coordinate_size)?);
-    Ok(URL_SAFE_NO_PAD.encode(raw))
+    Ok(raw)
+}
+
+fn sign_with_ec(message: &[u8], key: &EcKey<Private>, algorithm: &str, coordinate_size: usize) -> PyResult<String> {
+    Ok(URL_SAFE_NO_PAD.encode(sign_ec_raw(message, key, algorithm, coordinate_size)?))
+}
+
+fn ecdsa_sig_from_raw(raw: &[u8], coordinate_size: usize) -> PyResult<EcdsaSig> {
+    if raw.len() != coordinate_size * 2 {
+        return Err(jwt_err("Invalid ECDSA signature length"));
+    }
+    let r = BigNum::from_slice(&raw[..coordinate_size]).map_err(openssl_jwt_err)?;
+    let s = BigNum::from_slice(&raw[coordinate_size..]).map_err(openssl_jwt_err)?;
+    EcdsaSig::from_private_components(r, s).map_err(openssl_jwt_err)
+}
+
+fn verify_ec_public_raw(
+    signature: &[u8],
+    message: &[u8],
+    key: &EcKey<Public>,
+    algorithm: &str,
+    coordinate_size: usize,
+) -> PyResult<bool> {
+    let digest = compute_digest(message, algorithm)?;
+    let signature = ecdsa_sig_from_raw(signature, coordinate_size)?;
+    signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
 }
 
 fn verify_with_ec_public(
@@ -448,6 +553,18 @@ fn verify_with_ec_public(
 ) -> PyResult<bool> {
     let digest = compute_digest(message, algorithm)?;
     let signature = raw_jwt_signature_to_ecdsa_sig(signature, coordinate_size)?;
+    signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
+}
+
+fn verify_ec_private_raw(
+    signature: &[u8],
+    message: &[u8],
+    key: &EcKey<Private>,
+    algorithm: &str,
+    coordinate_size: usize,
+) -> PyResult<bool> {
+    let digest = compute_digest(message, algorithm)?;
+    let signature = ecdsa_sig_from_raw(signature, coordinate_size)?;
     signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
 }
 
@@ -463,21 +580,33 @@ fn verify_with_ec_private(
     signature.verify(&digest, key.as_ref()).map_err(openssl_jwt_err)
 }
 
-fn sign_with_ed(message: &[u8], key: &PKey<Private>) -> PyResult<String> {
+fn sign_ed_raw(message: &[u8], key: &PKey<Private>) -> PyResult<Vec<u8>> {
     let mut signer = OpenSslSigner::new_without_digest(key).map_err(openssl_jwt_err)?;
-    let signature = signer
-        .sign_oneshot_to_vec(message)
-        .map_err(openssl_jwt_err)?;
-    Ok(URL_SAFE_NO_PAD.encode(signature))
+    signer.sign_oneshot_to_vec(message).map_err(openssl_jwt_err)
+}
+
+fn sign_with_ed(message: &[u8], key: &PKey<Private>) -> PyResult<String> {
+    Ok(URL_SAFE_NO_PAD.encode(sign_ed_raw(message, key)?))
+}
+
+fn verify_ed_public_raw(signature: &[u8], message: &[u8], key: &PKey<Public>) -> PyResult<bool> {
+    let mut verifier = OpenSslVerifier::new_without_digest(key).map_err(openssl_jwt_err)?;
+    verifier
+        .verify_oneshot(signature, message)
+        .map_err(openssl_jwt_err)
 }
 
 fn verify_with_ed_public(signature: &str, message: &[u8], key: &PKey<Public>) -> PyResult<bool> {
     let signature = URL_SAFE_NO_PAD
         .decode(signature)
         .map_err(|err| jwt_err(err.to_string()))?;
+    verify_ed_public_raw(&signature, message, key)
+}
+
+fn verify_ed_private_raw(signature: &[u8], message: &[u8], key: &PKey<Private>) -> PyResult<bool> {
     let mut verifier = OpenSslVerifier::new_without_digest(key).map_err(openssl_jwt_err)?;
     verifier
-        .verify_oneshot(&signature, message)
+        .verify_oneshot(signature, message)
         .map_err(openssl_jwt_err)
 }
 
@@ -485,58 +614,27 @@ fn verify_with_ed_private(signature: &str, message: &[u8], key: &PKey<Private>) 
     let signature = URL_SAFE_NO_PAD
         .decode(signature)
         .map_err(|err| jwt_err(err.to_string()))?;
-    let mut verifier = OpenSslVerifier::new_without_digest(key).map_err(openssl_jwt_err)?;
-    verifier
-        .verify_oneshot(&signature, message)
-        .map_err(openssl_jwt_err)
-}
-
-fn sign_with_stored_key(message: &[u8], stored: &StoredKey, algorithm: &str) -> PyResult<String> {
-    match stored {
-        StoredKey::Encoding(encoding_key) => {
-            let algorithm = parse_algorithm(algorithm)?;
-            crypto::sign(message, encoding_key, algorithm).map_err(|err| jwt_err(err.to_string()))
-        }
-        StoredKey::RsaPrivate(key) => sign_with_rsa(message, key, algorithm),
-        StoredKey::EcPrivate(key, coordinate_size) => {
-            sign_with_ec(message, key, algorithm, *coordinate_size)
-        }
-        StoredKey::EdPrivate(key) => sign_with_ed(message, key),
-        _ => Err(invalid_key_err("prepared key handle is not valid for signing")),
-    }
-}
-
-fn verify_with_stored_key(
-    signature: &str,
-    message: &[u8],
-    stored: &StoredKey,
-    algorithm: &str,
-) -> PyResult<bool> {
-    match stored {
-        StoredKey::Decoding(decoding_key) => {
-            let algorithm = parse_algorithm(algorithm)?;
-            crypto::verify(signature, message, decoding_key, algorithm)
-                .map_err(|err| jwt_err(err.to_string()))
-        }
-        StoredKey::RsaPublic(key) => verify_with_rsa_public(signature, message, key, algorithm),
-        StoredKey::RsaPrivate(key) => verify_with_rsa_private(signature, message, key, algorithm),
-        StoredKey::EcPublic(key, coordinate_size) => {
-            verify_with_ec_public(signature, message, key, algorithm, *coordinate_size)
-        }
-        StoredKey::EcPrivate(key, coordinate_size) => {
-            verify_with_ec_private(signature, message, key, algorithm, *coordinate_size)
-        }
-        StoredKey::EdPublic(key) => verify_with_ed_public(signature, message, key),
-        StoredKey::EdPrivate(key) => verify_with_ed_private(signature, message, key),
-        _ => Err(invalid_key_err("prepared key handle is not valid for verification")),
-    }
+    verify_ed_private_raw(&signature, message, key)
 }
 
 fn sign_with_stored_key_raw(message: &[u8], stored: &StoredKey, algorithm: &str) -> PyResult<Vec<u8>> {
-    let signature = sign_with_stored_key(message, stored, algorithm)?;
-    URL_SAFE_NO_PAD
-        .decode(signature)
-        .map_err(|err| jwt_err(err.to_string()))
+    match stored {
+        StoredKey::Hmac(key) => sign_hmac_raw(message, key, algorithm),
+        StoredKey::RsaPrivate(key) => sign_rsa_raw(message, key, algorithm),
+        StoredKey::EcPrivate(key, coordinate_size) => {
+            sign_ec_raw(message, key, algorithm, *coordinate_size)
+        }
+        StoredKey::EdPrivate(key) => sign_ed_raw(message, key),
+        StoredKey::Encoding(encoding_key) => {
+            let alg = parse_algorithm(algorithm)?;
+            let b64 = crypto::sign(message, encoding_key, alg)
+                .map_err(|err| jwt_err(err.to_string()))?;
+            URL_SAFE_NO_PAD
+                .decode(b64)
+                .map_err(|err| jwt_err(err.to_string()))
+        }
+        _ => Err(invalid_key_err("prepared key handle is not valid for signing")),
+    }
 }
 
 fn verify_with_stored_key_raw(
@@ -545,8 +643,42 @@ fn verify_with_stored_key_raw(
     stored: &StoredKey,
     algorithm: &str,
 ) -> PyResult<bool> {
-    let signature = URL_SAFE_NO_PAD.encode(signature);
-    verify_with_stored_key(&signature, message, stored, algorithm)
+    match stored {
+        StoredKey::Hmac(key) => verify_hmac_raw(signature, message, key, algorithm),
+        StoredKey::RsaPublic(key) => verify_rsa_public_raw(signature, message, key, algorithm),
+        StoredKey::RsaPrivate(key) => verify_rsa_private_raw(signature, message, key, algorithm),
+        StoredKey::EcPublic(key, coordinate_size) => {
+            verify_ec_public_raw(signature, message, key, algorithm, *coordinate_size)
+        }
+        StoredKey::EcPrivate(key, coordinate_size) => {
+            verify_ec_private_raw(signature, message, key, algorithm, *coordinate_size)
+        }
+        StoredKey::EdPublic(key) => verify_ed_public_raw(signature, message, key),
+        StoredKey::EdPrivate(key) => verify_ed_private_raw(signature, message, key),
+        StoredKey::Decoding(decoding_key) => {
+            let alg = parse_algorithm(algorithm)?;
+            let sig_b64 = URL_SAFE_NO_PAD.encode(signature);
+            crypto::verify(&sig_b64, message, decoding_key, alg)
+                .map_err(|err| jwt_err(err.to_string()))
+        }
+        _ => Err(invalid_key_err("prepared key handle is not valid for verification")),
+    }
+}
+
+fn sign_with_stored_key(message: &[u8], stored: &StoredKey, algorithm: &str) -> PyResult<String> {
+    Ok(URL_SAFE_NO_PAD.encode(sign_with_stored_key_raw(message, stored, algorithm)?))
+}
+
+fn verify_with_stored_key(
+    signature: &str,
+    message: &[u8],
+    stored: &StoredKey,
+    algorithm: &str,
+) -> PyResult<bool> {
+    let sig_bytes = URL_SAFE_NO_PAD
+        .decode(signature)
+        .map_err(|err| jwt_err(err.to_string()))?;
+    verify_with_stored_key_raw(&sig_bytes, message, stored, algorithm)
 }
 
 fn put_handle(
@@ -613,6 +745,7 @@ fn build_stored_key_from_bytes(
     key_bytes: &[u8],
 ) -> PyResult<StoredKey> {
     match (algorithm_name, usage) {
+        ("HS256" | "HS384" | "HS512", _) => Ok(StoredKey::Hmac(key_bytes.to_vec())),
         ("RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "PS512", CacheUsage::Encode) => {
             Ok(StoredKey::RsaPrivate(parse_rsa_private_key(key_bytes)?))
         }
@@ -887,6 +1020,10 @@ fn sign(message: &[u8], key: &Bound<'_, PyAny>, algorithm: &str) -> PyResult<Str
 
     let key_bytes = extract_key_bytes(key)?;
 
+    if matches!(algorithm, "HS256" | "HS384" | "HS512") {
+        return Ok(URL_SAFE_NO_PAD.encode(sign_hmac_raw(message, &key_bytes, algorithm)?));
+    }
+
     if is_rsa_algorithm(algorithm) || is_ec_algorithm(algorithm) || algorithm == "EdDSA" {
         let usage = CacheUsage::Encode;
         let algorithm_name = normalize_algorithm_name(algorithm)?;
@@ -912,6 +1049,13 @@ fn verify(
 
     let key_bytes = extract_key_bytes(key)?;
 
+    if matches!(algorithm, "HS256" | "HS384" | "HS512") {
+        let sig_bytes = URL_SAFE_NO_PAD
+            .decode(signature)
+            .map_err(|err| jwt_err(err.to_string()))?;
+        return verify_hmac_raw(&sig_bytes, message, &key_bytes, algorithm);
+    }
+
     if is_rsa_algorithm(algorithm) || is_ec_algorithm(algorithm) || algorithm == "EdDSA" {
         let usage = CacheUsage::Decode;
         let algorithm_name = normalize_algorithm_name(algorithm)?;
@@ -926,9 +1070,94 @@ fn verify(
 }
 
 #[pyfunction]
+fn hmac_sign_raw(message: &[u8], key: &Bound<'_, PyAny>, algorithm: &str) -> PyResult<Vec<u8>> {
+    let key_bytes = extract_key_bytes(key)?;
+    sign_hmac_raw(message, &key_bytes, algorithm)
+}
+
+#[pyfunction]
+fn hmac_verify_raw(
+    signature: &[u8],
+    message: &[u8],
+    key: &Bound<'_, PyAny>,
+    algorithm: &str,
+) -> PyResult<bool> {
+    let key_bytes = extract_key_bytes(key)?;
+    verify_hmac_raw(signature, message, &key_bytes, algorithm)
+}
+
+#[pyfunction]
 fn decode_segments(token: &Bound<'_, PyAny>) -> PyResult<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> {
     let token_bytes = extract_bytes_or_string(token, "token")?;
     decode_token_segments(&token_bytes)
+}
+
+#[pyfunction]
+fn decode_and_verify(
+    token: &Bound<'_, PyAny>,
+    handle: &RustKeyHandle,
+    algorithm: &str,
+) -> PyResult<(Vec<u8>, Vec<u8>, Vec<u8>, bool)> {
+    let token_bytes = extract_bytes_or_string(token, "token")?;
+    let (payload, signing_input, header_data, signature) = decode_token_segments(&token_bytes)?;
+    let stored = stored_key_from_handle(handle)?;
+    let ok = verify_with_stored_key_raw(&signature, &signing_input, stored.as_ref(), algorithm)?;
+    Ok((header_data, payload, signature, ok))
+}
+
+#[pyfunction]
+fn encode_token(
+    header_b64: &str,
+    payload: &[u8],
+    handle: &RustKeyHandle,
+    algorithm: &str,
+    is_payload_detached: bool,
+) -> PyResult<String> {
+    let stored = stored_key_from_handle(handle)?;
+
+    // Build signing_input: header_b64 + "." + (payload_b64 or raw payload bytes if detached)
+    let header_len = header_b64.len();
+    let payload_seg_capacity = if is_payload_detached {
+        payload.len()
+    } else {
+        // worst case base64: ceil(len*4/3)
+        (payload.len() * 4 + 2) / 3
+    };
+    let mut signing_input = Vec::with_capacity(header_len + 1 + payload_seg_capacity);
+    signing_input.extend_from_slice(header_b64.as_bytes());
+    signing_input.push(b'.');
+    let payload_segment_start = signing_input.len();
+    if is_payload_detached {
+        signing_input.extend_from_slice(payload);
+    } else {
+        let mut buf = vec![0_u8; payload_seg_capacity];
+        let written = URL_SAFE_NO_PAD
+            .encode_slice(payload, &mut buf)
+            .map_err(|err| jwt_err(err.to_string()))?;
+        buf.truncate(written);
+        signing_input.extend_from_slice(&buf);
+    }
+
+    let signature_raw = sign_with_stored_key_raw(&signing_input, stored.as_ref(), algorithm)?;
+    let signature_b64 = URL_SAFE_NO_PAD.encode(signature_raw);
+
+    // Assemble final: header.payload_segment.signature
+    // If detached, payload_segment is empty in the output.
+    let payload_segment_bytes = if is_payload_detached {
+        &[][..]
+    } else {
+        &signing_input[payload_segment_start..]
+    };
+    let mut out = String::with_capacity(
+        header_len + 1 + payload_segment_bytes.len() + 1 + signature_b64.len(),
+    );
+    out.push_str(header_b64);
+    out.push('.');
+    // SAFETY: base64url output and header_b64 are ASCII
+    out.push_str(std::str::from_utf8(payload_segment_bytes).unwrap_or(""));
+    out.push('.');
+    out.push_str(&signature_b64);
+    Ok(out)
 }
 
 #[pyfunction]
@@ -1127,6 +1356,8 @@ fn _rust_pyjwt(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<RustKeyHandle>()?;
     m.add_function(wrap_pyfunction!(sign, m)?)?;
     m.add_function(wrap_pyfunction!(verify, m)?)?;
+    m.add_function(wrap_pyfunction!(hmac_sign_raw, m)?)?;
+    m.add_function(wrap_pyfunction!(hmac_verify_raw, m)?)?;
     m.add_function(wrap_pyfunction!(prepare_key_handle, m)?)?;
     m.add_function(wrap_pyfunction!(prepare_jwk_handle, m)?)?;
     m.add_function(wrap_pyfunction!(sign_prepared, m)?)?;
@@ -1134,6 +1365,8 @@ fn _rust_pyjwt(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(verify_prepared, m)?)?;
     m.add_function(wrap_pyfunction!(verify_prepared_raw, m)?)?;
     m.add_function(wrap_pyfunction!(decode_segments, m)?)?;
+    m.add_function(wrap_pyfunction!(decode_and_verify, m)?)?;
+    m.add_function(wrap_pyfunction!(encode_token, m)?)?;
     m.add_function(wrap_pyfunction!(hash_digest, m)?)?;
     m.add_function(wrap_pyfunction!(verify_with_jwk, m)?)?;
     m.add_function(wrap_pyfunction!(base64url_decode, m)?)?;

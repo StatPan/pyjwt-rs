@@ -21,6 +21,8 @@ from ._rust_pyjwt import (
     base64url_decode,
     base64url_encode,
     hash_digest as rust_hash_digest,
+    hmac_sign_raw as rust_hmac_sign_raw,
+    hmac_verify_raw as rust_hmac_verify_raw,
     prepare_jwk_handle as rust_prepare_jwk_handle,
     prepare_key_handle as rust_prepare_key_handle,
     sign as rust_sign,
@@ -264,7 +266,7 @@ class HMACAlgorithm(Algorithm):
         try:
             if isinstance(key, RustKeyHandle):
                 return rust_sign_prepared_raw(msg, key, self.name)
-            return base64url_decode(rust_sign(msg, key, self.name))
+            return rust_hmac_sign_raw(msg, key, self.name)
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
         except RustInvalidKeyError as exc:
@@ -276,7 +278,7 @@ class HMACAlgorithm(Algorithm):
         try:
             if isinstance(key, RustKeyHandle):
                 return rust_verify_prepared_raw(sig, msg, key, self.name)
-            return rust_verify(base64url_encode(sig), msg, key, self.name)
+            return rust_hmac_verify_raw(sig, msg, key, self.name)
         except RustInvalidAlgorithmError as exc:
             raise NotImplementedError("Algorithm not supported") from exc
         except RustInvalidKeyError as exc:

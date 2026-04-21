@@ -11,7 +11,9 @@ from ._rust_pyjwt import (
     RustKeyHandle,
     base64url_decode,
     base64url_encode,
+    decode_and_verify as rust_decode_and_verify,
     decode_segments as rust_decode_segments,
+    encode_token as rust_encode_token,
     sign_prepared as rust_sign_prepared,
     sign_prepared_raw as rust_sign_prepared_raw,
     verify_prepared as rust_verify_prepared,
@@ -37,6 +39,24 @@ from .api_jwk import PyJWK
 from .warnings import InsecureKeyLengthWarning, RemovedInPyjwt3Warning
 
 _ALGORITHM_UNSET = object()
+_DEFAULT_HEADER_B64_CACHE: dict[str, str] = {}
+
+
+def _default_header_b64(algorithm: str, typ: str) -> str:
+    cache_key = f"{typ}:{algorithm}" if typ else f":{algorithm}"
+    cached = _DEFAULT_HEADER_B64_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    header: dict[str, Any] = {"alg": algorithm}
+    if typ:
+        header["typ"] = typ
+    # sort_keys=True matches default sort_headers=True behavior; "alg" < "typ".
+    json_bytes = json.dumps(header, separators=(",", ":"), sort_keys=True).encode()
+    encoded = base64url_encode(json_bytes)
+    _DEFAULT_HEADER_B64_CACHE[cache_key] = encoded
+    return encoded
+
+
 _RUST_PREPARED_ALGORITHMS = {
     "HS256",
     "HS384",
@@ -136,33 +156,32 @@ class PyJWS:
             if headers_b64 is False:
                 is_payload_detached = True
 
-        header: dict[str, Any] = {"typ": self.header_typ, "alg": algorithm_}
-
-        if headers:
-            self._validate_headers(headers, encoding=True)
-            header.update(headers)
-
-        if not header["typ"]:
-            del header["typ"]
-
-        if is_payload_detached:
-            header["b64"] = False
-        elif "b64" in header:
-            del header["b64"]
-
-        json_header = json.dumps(
-            header, separators=(",", ":"), cls=json_encoder, sort_keys=sort_headers
-        ).encode()
-        encoded_header = base64url_encode(json_header)
-
-        if is_payload_detached:
-            payload_segment = payload.decode("utf-8")
-            msg_payload = payload
+        if (
+            not headers
+            and not is_payload_detached
+            and json_encoder is None
+            and sort_headers
+        ):
+            encoded_header = _default_header_b64(algorithm_, self.header_typ)
         else:
-            payload_segment = base64url_encode(payload)
-            msg_payload = payload_segment.encode("ascii")
+            header: dict[str, Any] = {"typ": self.header_typ, "alg": algorithm_}
 
-        signing_input = encoded_header.encode("ascii") + b"." + msg_payload
+            if headers:
+                self._validate_headers(headers, encoding=True)
+                header.update(headers)
+
+            if not header["typ"]:
+                del header["typ"]
+
+            if is_payload_detached:
+                header["b64"] = False
+            elif "b64" in header:
+                del header["b64"]
+
+            json_header = json.dumps(
+                header, separators=(",", ":"), cls=json_encoder, sort_keys=sort_headers
+            ).encode()
+            encoded_header = base64url_encode(json_header)
 
         alg_obj = self.get_algorithm_by_name(algorithm_)
         raw_key = key.key if isinstance(key, PyJWK) else key
@@ -186,13 +205,26 @@ class PyJWS:
                 raise InvalidKeyError(key_length_msg)
             warnings.warn(key_length_msg, InsecureKeyLengthWarning, stacklevel=2)
 
-        try:
-            if isinstance(prepared_handle, RustKeyHandle) and not isinstance(alg_obj, HMACAlgorithm):
-                signature = base64url_encode(
-                    rust_sign_prepared_raw(signing_input, prepared_handle, algorithm_)
+        # Fast path: handle-based sign with full assembly in Rust.
+        if isinstance(prepared_handle, RustKeyHandle):
+            try:
+                return rust_encode_token(
+                    encoded_header, payload, prepared_handle, algorithm_, is_payload_detached
                 )
-            else:
-                signature = base64url_encode(alg_obj.sign(signing_input, prepared_key))
+            except RustJWTError as exc:
+                raise InvalidTokenError(str(exc)) from exc
+
+        if is_payload_detached:
+            payload_segment = payload.decode("utf-8")
+            msg_payload = payload
+        else:
+            payload_segment = base64url_encode(payload)
+            msg_payload = payload_segment.encode("ascii")
+
+        signing_input = encoded_header.encode("ascii") + b"." + msg_payload
+
+        try:
+            signature = base64url_encode(alg_obj.sign(signing_input, prepared_key))
         except RustJWTError as exc:
             raise InvalidTokenError(str(exc)) from exc
 
@@ -225,6 +257,46 @@ class PyJWS:
             raise DecodeError(
                 'It is required that you pass in a value for the "algorithms" argument when calling decode().'
             )
+
+        # Fast path: single-algorithm non-PyJWK decode+verify in one FFI call.
+        if (
+            verify_signature
+            and detached_payload is None
+            and not isinstance(key, PyJWK)
+            and algorithms is not None
+            and len(algorithms) == 1
+            and isinstance(jwt, (str, bytes))
+        ):
+            alg_name = algorithms[0]
+            if alg_name in _RUST_PREPARED_ALGORITHMS and not merged_options.get(
+                "enforce_minimum_key_length", False
+            ):
+                handle = prepare_rust_handle(key, alg_name, "decode")
+                if handle is not None:
+                    try:
+                        header_data, payload, signature, ok = rust_decode_and_verify(
+                            jwt, handle, alg_name
+                        )
+                    except RustJWTError as err:
+                        raise DecodeError(str(err)) from err
+                    try:
+                        header = json.loads(header_data)
+                    except ValueError as err:
+                        raise DecodeError(f"Invalid header string: {err}") from err
+                    if not isinstance(header, dict):
+                        raise DecodeError("Invalid header string: must be a json object")
+                    self._validate_headers(header)
+                    if header.get("b64", True) is False:
+                        raise DecodeError(
+                            'It is required that you pass in a value for the "detached_payload" argument to decode a message having the b64 header set to false.'
+                        )
+                    if header.get("alg") != alg_name:
+                        raise InvalidAlgorithmError(
+                            "The specified alg value is not allowed"
+                        )
+                    if not ok:
+                        raise InvalidSignatureError("Signature verification failed")
+                    return {"payload": payload, "header": header, "signature": signature}
 
         payload, signing_input, header, signature = self._load(jwt)
         self._validate_headers(header)
@@ -339,7 +411,6 @@ class PyJWS:
             if (
                 isinstance(prepared_key, RustKeyHandle)
                 and alg in _RUST_PREPARED_ALGORITHMS
-                and not isinstance(alg_obj, HMACAlgorithm)
             ):
                 ok = rust_verify_prepared_raw(signature, signing_input, prepared_key, alg)
             else:
