@@ -61,7 +61,7 @@ uv run --extra bench python scripts/release.py minor --dry-run
 3. `Cargo.toml`, `pyproject.toml`, `__pyjwt_rs_version__` 버전을 일괄 갱신.
 4. `CHANGELOG.md`의 `[Unreleased]` 블록을 새 버전 섹션으로 승격하고 compare 링크 갱신.
 5. `scripts/update_readme_bench.py`로 README 벤치 표 + `docs/benchmark.svg` 재생성.
-6. `pytest -q` 실행.
+6. `scripts/pytest_gate.py` 실행 (`-W error` + unexpected skip 차단).
 7. 관련 파일을 staging하고 `release: vX.Y.Z` 커밋 + annotated 태그 생성.
 8. `--push`일 경우 `git push` + `git push origin vX.Y.Z`로 태그까지 송신.
 

@@ -26,7 +26,14 @@
 
 테스트 상태:
 
-- `320 passed, 4 skipped`
+- `324 passed`
+
+품질 정책:
+
+- 테스트는 hidden warning 없이 통과해야 합니다. CI는 `-W error` 기반 게이트를 사용합니다.
+- 의도된 skip은 `.quality/pytest-allowlist.json`에 명시되어야 합니다.
+- 릴리스/호환성 작업은 공개 GitHub issue와 milestone으로 추적합니다.
+- 자세한 운영 정책은 [CONTRIBUTING.md](/home/statpan/workspace/pypi_lib/pyjwt-rs/CONTRIBUTING.md:1), 호환성 갭은 [COMPATIBILITY_CHECKLIST.md](/home/statpan/workspace/pypi_lib/pyjwt-rs/COMPATIBILITY_CHECKLIST.md:1) 에서 관리합니다.
 
 ## Usage
 

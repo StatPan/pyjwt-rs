@@ -60,7 +60,7 @@ uv run --extra bench python scripts/release.py 1.2.3
 - `--dry-run` — 무엇을 할지만 출력, 파일은 안 건드림. 먼저 실행해서 계획 확인 권장.
 - `--push` — 커밋 + 태그까지 바로 push. 없으면 로컬에서 멈추고 `git push --follow-tags` 명령만 안내.
 - `--allow-dirty` — 워킹 트리가 clean이 아니어도 진행. 기본은 막음.
-- `--skip-tests`, `--skip-bench` — 각각 `pytest`, 벤치 재생성을 건너뜀.
+- `--skip-tests`, `--skip-bench` — 각각 strict pytest gate, 벤치 재생성을 건너뜀.
 
 스크립트가 내부적으로 수행:
 
@@ -68,16 +68,40 @@ uv run --extra bench python scripts/release.py 1.2.3
 2. `Cargo.toml` + `pyproject.toml` + `__pyjwt_rs_version__` 3곳의 버전을 **한 번에** 갱신.
 3. `CHANGELOG.md`의 `[Unreleased]` 블록을 `[X.Y.Z] - YYYY-MM-DD` 섹션으로 승격하고, 하단 compare 링크를 갱신.
 4. `scripts/update_readme_bench.py` 실행 → README 벤치 표 + `docs/benchmark.svg` 자동 재생성.
-5. `pytest -q` 실행.
+5. `scripts/pytest_gate.py` 실행 (`-W error` + unexpected skip 차단).
 6. 위 파일들을 staging 후 `release: vX.Y.Z` 커밋 + annotated 태그 `vX.Y.Z` 생성.
 7. `--push`면 바로 push.
 
+태그를 밀기 전에 release matrix만 먼저 검증하려면:
+
+1. 변경 브랜치를 push.
+2. GitHub Actions의 `Release` workflow를 `workflow_dispatch`로 실행.
+3. `publish = false` 로 두고 wheel/sdist 빌드만 확인.
+4. 다섯 플랫폼 산출물이 모두 성공한 뒤에만 태그 push로 실제 publish 진행.
+
 태그가 origin에 도달하면 `.github/workflows/release.yml`이 자동으로:
 
-- 모든 플랫폼(Linux x86_64/aarch64, macOS x86_64/arm64, Windows x64) × Python 3.10–3.13 휠 빌드
+- 플랫폼별 휠 빌드 — Linux x86_64 · Linux aarch64 · macOS x86_64 · macOS arm64 · Windows x64 (총 **5개 휠**)
 - sdist 빌드
 - PyPI trusted publishing(OIDC)으로 업로드. **API 토큰 없음.**
 
+### 왜 플랫폼당 1개 휠인가 (abi3)
+
+`Cargo.toml`의 PyO3가 `abi3-py310` feature로 빌드되기 때문에 각 휠은
+**Python stable ABI (PEP 384)** 바이너리입니다. 한 휠이 `cp310-abi3-*` 태그로
+나오고, 이 하나가 **CPython 3.10, 3.11, 3.12, 3.13 및 앞으로 나올 3.x 전부**에
+설치됩니다.
+
+그래서:
+
+- 릴리스 매트릭스가 20 jobs → 5 jobs로 줄어듦 (4×).
+- Python 3.14/3.15 나와도 재빌드·재릴리스 필요 없음.
+- `pip install pyjwt-rs`가 사용자의 Python 버전에 상관없이 이미 만들어둔 휠을 받음.
+
+제약:
+
+- `requires-python = ">=3.10"` 필수 (pyproject에 이미 선언됨).
+- PyO3의 abi3 미지원 API는 사용 불가 (현재 코드베이스 호환됨 — 324 tests 통과).
 ---
 
 ## 2. 릴리스 진행 상황 확인

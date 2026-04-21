@@ -1,0 +1,31 @@
+name: Bug Report
+description: Report a user-visible defect in pyjwt-rs.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the defect and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide a minimal reproduction, commands, or inputs.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: User Impact
+      description: Explain who is affected and whether this should block release.
+    validations:
+      required: true
+  - type: input
+    id: compatibility
+    attributes:
+      label: Compatibility Surface
+      description: Name the public API, algorithm, or packaging path involved.

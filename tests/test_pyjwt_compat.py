@@ -11,17 +11,19 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 import jwt_rs as jwt
 from jwt_rs.warnings import InsecureKeyLengthWarning, RemovedInPyjwt3Warning
 
+from .utils import HS256_SECRET
+
 
 def test_roundtrip_hs256():
     token = jwt.encode(
         {"sub": "alice", "exp": int(datetime.now(tz=timezone.utc).timestamp()) + 300},
-        "secret",
+        HS256_SECRET,
         algorithm="HS256",
         headers={"kid": "dev-key"},
     )
-    claims = jwt.decode(token, "secret", algorithms=["HS256"])
+    claims = jwt.decode(token, HS256_SECRET, algorithms=["HS256"])
     header = jwt.get_unverified_header(token)
-    complete = jwt.decode_complete(token, "secret", algorithms=["HS256"])
+    complete = jwt.decode_complete(token, HS256_SECRET, algorithms=["HS256"])
 
     assert claims["sub"] == "alice"
     assert header["kid"] == "dev-key"
@@ -38,44 +40,44 @@ def test_encode_rejects_non_dict_payload():
 
 
 def test_decode_requires_algorithms_when_verifying():
-    token = jwt.encode({"a": 1}, "secret", algorithm="HS256")
+    token = jwt.encode({"a": 1}, HS256_SECRET, algorithm="HS256")
     with pytest.raises(
         jwt.DecodeError,
         match='It is required that you pass in a value for the "algorithms" argument',
     ):
-        jwt.decode(token, "secret")
+        jwt.decode(token, HS256_SECRET)
 
 
 def test_subject_and_required_claim_validation():
-    token = jwt.encode({"sub": "alice"}, "secret", algorithm="HS256")
+    token = jwt.encode({"sub": "alice"}, HS256_SECRET, algorithm="HS256")
     with pytest.raises(jwt.InvalidSubjectError, match="Invalid subject"):
-        jwt.decode(token, "secret", algorithms=["HS256"], subject="bob")
+        jwt.decode(token, HS256_SECRET, algorithms=["HS256"], subject="bob")
     with pytest.raises(jwt.MissingRequiredClaimError, match='Token is missing the "iss" claim'):
-        jwt.decode(token, "secret", algorithms=["HS256"], options={"require": ["iss"]})
+        jwt.decode(token, HS256_SECRET, algorithms=["HS256"], options={"require": ["iss"]})
 
 
 def test_datetime_claims_and_expiration():
     token = jwt.encode(
         {"exp": datetime.now(tz=timezone.utc) - timedelta(seconds=1)},
-        "secret",
+        HS256_SECRET,
         algorithm="HS256",
     )
     with pytest.raises(jwt.ExpiredSignatureError, match="Signature has expired"):
-        jwt.decode(token, "secret", algorithms=["HS256"])
+        jwt.decode(token, HS256_SECRET, algorithms=["HS256"])
 
 
 def test_decode_complete_detached_payload():
     payload = b'{"sub":"alice"}'
     token = jwt.api_jws.PyJWS().encode(
         payload,
-        "secret",
+        HS256_SECRET,
         algorithm="HS256",
         headers={"b64": False, "crit": ["b64"]},
         is_payload_detached=True,
     )
     decoded = jwt.decode_complete(
         token,
-        "secret",
+        HS256_SECRET,
         algorithms=["HS256"],
         detached_payload=payload,
         options={"verify_signature": True},
@@ -84,10 +86,10 @@ def test_decode_complete_detached_payload():
 
 
 def test_deprecated_kwargs_warning():
-    token = jwt.encode({"a": 1}, "secret", algorithm="HS256")
+    token = jwt.encode({"a": 1}, HS256_SECRET, algorithm="HS256")
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        jwt.decode(token, "secret", algorithms=["HS256"], foo="bar")
+        jwt.decode(token, HS256_SECRET, algorithms=["HS256"], foo="bar")
     assert any(isinstance(w.message, RemovedInPyjwt3Warning) for w in caught)
 
 
@@ -152,10 +154,10 @@ def test_bad_segments_error():
 
 
 def test_header_sorting_toggle():
-    token1 = jwt.encode({"a": 1}, "secret", algorithm="HS256", headers={"z": 1, "a": 2})
+    token1 = jwt.encode({"a": 1}, HS256_SECRET, algorithm="HS256", headers={"z": 1, "a": 2})
     token2 = jwt.encode(
         {"a": 1},
-        "secret",
+        HS256_SECRET,
         algorithm="HS256",
         headers={"z": 1, "a": 2},
         sort_headers=False,

@@ -44,10 +44,12 @@ jobs:
           uv pip install --python .venv pytest pyjwt cryptography maturin
 
       - name: Build extension (debug)
+        env:
+          RUSTFLAGS: -D warnings
         run: uv run --python .venv maturin develop
 
-      - name: Run tests
-        run: uv run --python .venv pytest -q
+      - name: Run strict test gate
+        run: uv run --python .venv python scripts/pytest_gate.py
 
   build-sdist-smoke:
     name: sdist + wheel smoke build
@@ -64,6 +66,8 @@ jobs:
       - name: Build sdist
         run: maturin sdist --out dist
       - name: Build release wheel
+        env:
+          RUSTFLAGS: -D warnings
         run: maturin build --release --out dist --features vendored-openssl
       - name: List artifacts
         run: ls -la dist

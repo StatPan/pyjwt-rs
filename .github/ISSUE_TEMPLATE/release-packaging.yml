@@ -1,0 +1,35 @@
+name: Release or Packaging
+description: Track CI, wheel, publish, or trusted publishing work.
+title: "[release] "
+labels: ["packaging"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the release, CI, wheel, or publishing risk.
+    validations:
+      required: true
+  - type: textarea
+    id: affected-path
+    attributes:
+      label: Affected Path
+      description: Identify the workflow, platform, or package artifact involved.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Describe how the fix will be validated before release.
+    validations:
+      required: true
+  - type: dropdown
+    id: blocker
+    attributes:
+      label: Release Blocker
+      options:
+        - "yes"
+        - "no"
+    validations:
+      required: true
