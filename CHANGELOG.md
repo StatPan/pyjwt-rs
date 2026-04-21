@@ -10,6 +10,14 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
+### Fixed
+
+- Release wheel builds on Linux (manylinux), Windows, and macOS x86_64 were
+  failing because `openssl-sys` could not locate OpenSSL in the CI
+  environment. Wheel jobs now build against a vendored OpenSSL via a new
+  `vendored-openssl` crate feature. `v1.1.0` was tagged but never uploaded
+  to PyPI; `v1.1.1` is the first successful release.
+
 ## [1.1.0] - 2026-04-21
 
 ### Performance

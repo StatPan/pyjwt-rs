@@ -13,6 +13,11 @@ authors = ["statpan"]
 name = "_rust_pyjwt"
 crate-type = ["cdylib"]
 
+[features]
+# Build OpenSSL from source instead of linking against the system copy.
+# Used by CI wheel jobs so each platform produces a self-contained binary.
+vendored-openssl = ["openssl/vendored"]
+
 [dependencies]
 base64 = "0.22.1"
 ecdsa = "0.16.9"
