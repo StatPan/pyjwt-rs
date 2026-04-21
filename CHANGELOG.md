@@ -10,17 +10,14 @@ is documented in `VERSIONING.md`.
 
 ## [Unreleased]
 
-### Changed
+### Fixed
 
-- Release workflow now publishes to PyPI via **Trusted Publishing (OIDC)**
-  instead of the `PYPI_API_TOKEN` fallback that shipped `v1.2.0`. Added
-  `id-token: write` / `attestations: write` permissions to the publish
-  job and removed the explicit `password:` argument. The `environment:
-  pypi` gate is preserved. PEP 740 attestations are produced for every
-  artifact, which were disabled under the token path.
-- Bumped `actions/download-artifact` from `v5` (Node 20) to `v8`
-  (Node 24) to clear the runner deprecation annotation. All other
-  actions already run on Node 24.
+- Added regression coverage for `json_encoder` parity so custom payload
+  values still encode correctly after datetime claim normalization, custom
+  header values use the same encoder path as upstream PyJWT, and `kid`
+  validation is not bypassed by a custom encoder.
+- Marked `json_encoder` compatibility as complete in
+  `COMPATIBILITY_CHECKLIST.md`.
 
 ## [1.2.0] - 2026-04-21
 
