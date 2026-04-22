@@ -1,6 +1,6 @@
 [package]
 name = "pyjwt-rs"
-version = "1.2.1"
+version = "1.2.2"
 edition = "2024"
 description = "Rust-backed PyJWT-compatible JWT library for Python"
 license = "MIT"
