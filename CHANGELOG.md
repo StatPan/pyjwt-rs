@@ -8,6 +8,13 @@ on the **distribution** axis (`pyproject.toml` / `Cargo.toml` version). The
 `jwt_rs.__version__` field tracks the PyJWT compatibility target separately and
 is documented in `VERSIONING.md`.
 
+## [1.2.3](https://github.com/StatPan/pyjwt-rs/compare/v1.2.2...v1.2.3) (2026-04-22)
+
+
+### CI
+
+* **release:** replace release-please action with cli flow ([c3f66aa](https://github.com/StatPan/pyjwt-rs/commit/c3f66aafa0c53d055825cc157da5fb50b4a7bb87))
+
 ## [1.2.2](https://github.com/StatPan/pyjwt-rs/compare/v1.2.1...v1.2.2) (2026-04-22)
 
 
