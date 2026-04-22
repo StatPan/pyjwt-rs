@@ -20,18 +20,55 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release_state.outputs.release_created }}
+      tag_name: ${{ steps.release_state.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          config-file: .release-please-config.json
-          manifest-file: .release-please-manifest.json
-          target-branch: ${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
+          node-version: "24"
+      - name: Capture latest release before run
+        id: before_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_tag="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name 2>/dev/null || true)"
+          echo "tag_name=${latest_tag}" >> "$GITHUB_OUTPUT"
+      - name: Update release PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npx -y release-please release-pr \
+            --repo-url "${GITHUB_REPOSITORY}" \
+            --target-branch "${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}" \
+            --config-file .release-please-config.json \
+            --manifest-file .release-please-manifest.json \
+            --token "${GITHUB_TOKEN}"
+      - name: Create GitHub release if releasable
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npx -y release-please github-release \
+            --repo-url "${GITHUB_REPOSITORY}" \
+            --target-branch "${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}" \
+            --config-file .release-please-config.json \
+            --manifest-file .release-please-manifest.json \
+            --token "${GITHUB_TOKEN}"
+      - name: Capture release state after run
+        id: release_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_tag="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name 2>/dev/null || true)"
+          previous_tag="${{ steps.before_release.outputs.tag_name }}"
+          if [[ -n "${latest_tag}" && "${latest_tag}" != "${previous_tag}" ]]; then
+            echo "release_created=true" >> "$GITHUB_OUTPUT"
+            echo "tag_name=${latest_tag}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_created=false" >> "$GITHUB_OUTPUT"
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+          fi
 
   publish-release:
     needs: release-please
